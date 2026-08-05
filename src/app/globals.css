@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+
+  /* Brand & Surface Backgrounds */
+  --bg-dark: #1E1E2C;
+  --bg-main: #F4F6F8;
+  --bg-card: #FFFFFF;
+
+  /* Primary Accents & Interactive Colors */
+  --accent-interactive: #3B8FF3;
+  --accent-cta: #F29F67;
+
+  /* Status Colors */
+  --status-success: #34B1AA;
+  --status-warning: #E0B50F;
+  --status-rejected: #E05252;
+  --status-draft: #8A94A6;
+
+  /* Text & Typography */
+  --text-dark-primary: #FFFFFF;
+  --text-dark-muted: #94A3B8;
+  --text-light-primary: #1E293B;
+  --text-light-muted: #64748B;
+
+  /* Borders & Dividers */
+  /* Public GMC Request Form Palette Tokens */
+  --gmc-public-primary-dark: #102040;
+  --gmc-public-secondary-dark: #2C4368;
+  --gmc-public-accent-gold: #E0C07A;
+  --gmc-public-warm-cream: #F9F2E7;
+  --gmc-public-border-tint: rgba(44, 67, 104, 0.25);
+  --gmc-public-focus-ring: rgba(16, 32, 64, 0.15);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--text-light-primary);
+  background-color: var(--bg-main);
+}
+
+::selection {
+  background: rgba(59, 143, 243, 0.25);
+  color: #1E1E2C;
+}
+
+/* Custom Utilities for Theme Token Utility Classes */
+.bg-gmc-dark {
+  background-color: var(--bg-dark);
+}
+
+.bg-gmc-main {
+  background-color: var(--bg-main);
+}
+
+.border-gmc-dark {
+  border-color: var(--border-dark);
+}
+
+.border-gmc-light {
+  border-color: var(--border-light);
+}
+
+.text-gmc-cta {
+  color: var(--accent-cta);
+}
+
+.bg-gmc-cta {
+  background-color: var(--accent-cta);
+}
+
+.bg-gmc-interactive {
+  background-color: var(--accent-interactive);
+}
+
+.text-gmc-interactive {
+  color: var(--accent-interactive);
+}
+
+/* Thin subtle scrollbar for dark components */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Shared Interactive Table Row Hover Highlight */
+.gmc-table-row {
+  transition: background-color 200ms ease;
+}
+
+.gmc-table-row > td {
+  transition: background-color 200ms ease, border-color 200ms ease;
+  background-color: transparent;
+}
+
+.gmc-table-row > td:first-child {
+  border-left: 3px solid transparent;
+  transition: border-color 200ms ease, background-color 200ms ease;
+}
+
+.gmc-table-row:hover > td {
+  background-color: rgba(59, 143, 243, 0.08) !important; /* #3B8FF3 at 8% opacity */
+}
+
+.gmc-table-row:hover > td:first-child {
+  border-left-color: #3B8FF3 !important; /* 3px blue accent bar on left edge of first cell */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gmc-table-row,
+  .gmc-table-row > td,
+  .gmc-table-row > td:first-child {
+    transition: none !important;
+  }
+}

@@ -1,0 +1,246 @@
+import { PurposeOfRequest } from "@prisma/client";
+import { formatBusinessDate, formatPurposeRemarks, getGmcCertificateTermLabel } from "@/lib/gmc-request";
+
+export const DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY =
+  process.env.GMC_CERTIFICATE_AUTHORIZED_SIGNATORY ?? "SHEILA MARIE R. RELLES, MA";
+
+export const DEFAULT_CERTIFICATE_OFFICE_DESIGNATION =
+  process.env.GMC_CERTIFICATE_OFFICE_DESIGNATION ?? "SDO Officer-in-Charge";
+
+export interface GoodMoralCertificateTemplateInput {
+  certificateNumber: string;
+  studentFullName: string;
+  studentId: string;
+  courseProgram: string;
+  academicYear: string;
+  studentTitlePrefix: string | null;
+  purposeOfRequest: PurposeOfRequest;
+  officialReceiptNumber: string | null;
+  dateOfIssuance: Date;
+  authorizedSignatory: string;
+  officeDesignation: string;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+export function buildCertificateTitlePrefixLine(
+  studentTitlePrefix: string | null,
+  studentFullName: string,
+): string {
+  const prefix = studentTitlePrefix?.trim();
+
+  if (!prefix) {
+    return studentFullName;
+  }
+
+  return `${prefix} ${studentFullName}`.trim();
+}
+
+export function buildGoodMoralCertificateHtml(
+  input: GoodMoralCertificateTemplateInput,
+): string {
+  const dateOfIssuance = formatBusinessDate(input.dateOfIssuance);
+  const term = getGmcCertificateTermLabel();
+  const titlePrefix = buildCertificateTitlePrefixLine(
+    input.studentTitlePrefix,
+    input.studentFullName,
+  );
+  const purposeRemarks = formatPurposeRemarks(input.purposeOfRequest);
+  const receiptNumber = input.officialReceiptNumber?.trim() || "N/A";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Certificate ${escapeHtml(input.certificateNumber)}</title>
+    <style>
+      @page {
+        size: letter;
+        margin: 0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0.85in 0.82in 0.9in;
+        background: #ffffff;
+        color: #111111;
+        font-family: "Times New Roman", Times, serif;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .sheet {
+        min-height: 9.4in;
+      }
+
+      .top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        font-size: 12pt;
+        line-height: 1.35;
+        margin-bottom: 26px;
+      }
+
+      .date-line {
+        white-space: pre-wrap;
+      }
+
+      .certificate-number {
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .title-block {
+        text-align: center;
+        margin: 6px 0 26px;
+      }
+
+      .title {
+        font-size: 17pt;
+        font-style: italic;
+        font-weight: 700;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        margin: 0;
+        line-height: 1.2;
+      }
+
+      .paragraph {
+        font-size: 12pt;
+        line-height: 1.65;
+        margin: 0;
+        text-align: justify;
+      }
+
+      .paragraph + .paragraph {
+        margin-top: 18px;
+      }
+
+      .spacer-before-certified-by {
+        height: 26px;
+      }
+
+      .certified-by {
+        font-size: 12pt;
+        font-style: italic;
+        margin: 0 0 20px;
+      }
+
+      .signature-block {
+        margin-left: auto;
+        width: 320px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .signatory-name {
+        font-size: 12pt;
+        font-weight: 700;
+        line-height: 1.35;
+        margin: 0 0 4px;
+      }
+
+      .signatory-title {
+        font-size: 12pt;
+        line-height: 1.35;
+        margin: 0;
+      }
+
+      .footer-block {
+        margin-top: 18px;
+        font-size: 12pt;
+        line-height: 1.65;
+      }
+
+      .footer-line {
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .footer-note {
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .remarks {
+        margin-top: 18px;
+        font-size: 12pt;
+        line-height: 1.65;
+      }
+
+      .remarks-label {
+        font-weight: 400;
+      }
+
+      .remarks-text {
+        font-weight: 700;
+        font-style: italic;
+      }
+
+      .receipt-number {
+        font-weight: 700;
+      }
+
+      @media print {
+        body {
+          padding: 0.85in 0.82in 0.9in;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <article class="sheet">
+      <div class="top-row">
+        <div class="date-line">${escapeHtml(dateOfIssuance)}</div>
+        <div class="certificate-number">Certificate No. ${escapeHtml(input.certificateNumber)}</div>
+      </div>
+
+      <div class="title-block">
+        <h1 class="title">CERTIFICATION OF GOOD MORAL CHARACTER</h1>
+      </div>
+
+      <p class="paragraph">
+        This is to certify that ${escapeHtml(input.studentFullName)}, with student number ${escapeHtml(input.studentId)}, was a student of ${escapeHtml(input.courseProgram)} at NU Fairview for ${escapeHtml(term)}, Academic Year ${escapeHtml(input.academicYear)}.
+      </p>
+
+      <p class="paragraph">
+        It is further certified that ${escapeHtml(titlePrefix)} is of good moral character and has no derogatory records, nor has he been subjected to any disciplinary action while a student at university.
+      </p>
+
+      <div class="spacer-before-certified-by"></div>
+
+      <p class="certified-by">Certified by</p>
+
+      <div class="signature-block">
+        <p class="signatory-name">${escapeHtml(input.authorizedSignatory)}</p>
+        <p class="signatory-title">${escapeHtml(input.officeDesignation)}</p>
+      </div>
+
+      <div class="footer-block">
+        <p class="footer-line receipt-number">Student Official Receipt Number ${escapeHtml(receiptNumber)}</p>
+        <p class="footer-note">For verification, please directly contact the Discipline Office*</p>
+        <p class="footer-note">Not Valid Without School's Dry Seal*</p>
+      </div>
+
+      <p class="remarks">
+        <span class="remarks-label">D.O. Remarks:</span>
+        <span class="remarks-text"> ${escapeHtml(purposeRemarks)}</span>
+      </p>
+    </article>
+  </body>
+</html>`;
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@gmc/backend",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/main.ts",
+  "scripts": {
+    "dev": "ts-node-dev --respawn src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:seed": "node prisma/seed.js",
+    "lint": "eslint . --ext .ts"
+  },
+  "dependencies": {
+    "fastify": "^4.0.0",
+    "pino": "^8.0.0",
+    "zod": "^3.0.0",
+    "@prisma/client": "*",
+    "@fastify/multipart": "^6.0.0",
+    "multer": "^2.2.0"
+  },
+  "devDependencies": {
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0"
+  }
+}

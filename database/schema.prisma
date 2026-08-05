@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GmcStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RETURNED
+  RELEASED
+}
+
+model GmcRequest {
+  id              String    @id @default(uuid())
+  studentId       String
+  firstName       String
+  middleInitial   String?
+  lastName        String
+  course          String
+  academicYear    String
+  purpose         String
+  email           String
+  paymentProofUrl String?
+  status          GmcStatus @default(PENDING)
+  requestNumber   String?
+  certificate     Certificate?
+  auditLogs       AuditLog[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Certificate {
+  id        String   @id @default(uuid())
+  certNumber String  @unique
+  request   GmcRequest @relation(fields: [requestId], references: [id])
+  requestId String   @unique
+  issuedAt  DateTime @default(now())
+  pdfUrl    String
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  request    GmcRequest @relation(fields: [requestId], references: [id])
+  requestId  String
+  action     String
+  performedBy String
+  note       String?
+  timestamp  DateTime @default(now())
+}
+
+model AdminUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String
+  createdAt    DateTime @default(now())
+}

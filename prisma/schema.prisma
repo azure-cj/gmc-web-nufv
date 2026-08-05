@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum PurposeOfRequest {
+  TRANSFER_OUT
+  EMPLOYMENT
+  SCHOLARSHIP
+  INTERNSHIP
+  BOARD_EXAM
+  OTHER
+}
+
+enum PaymentVerificationStatus {
+  UNVERIFIED
+  VALID
+  INVALID
+}
+
+enum GmcRequestStatus {
+  PENDING
+  APPROVED
+  GENERATED
+  REJECTED
+  RETURNED
+  RELEASED
+  DELIVERY_FAILED
+}
+
+enum StaffRole {
+  DISCIPLINE_OFFICE_STAFF
+  ADMIN
+}
+
+enum NumberingKind {
+  REQUEST_REFERENCE
+  CERTIFICATE_NUMBER
+}
+
+model Student {
+  studentId       String       @id
+  firstName       String
+  middleInitial   String?
+  lastName        String
+  courseProgram   String
+  academicYear    String
+  email           String       @unique
+  gmcRequests     GmcRequest[]
+}
+
+model GmcRequest {
+  id                       String                     @id @default(uuid()) @db.Uuid
+  requestReferenceNumber    String                     @unique
+  studentId                 String
+  student                   Student                    @relation(fields: [studentId], references: [studentId], onDelete: Restrict)
+  studentTitlePrefix        String?
+  studentFirstName          String
+  studentMiddleInitial      String?
+  studentLastName           String
+  studentCourseProgram      String
+  studentAcademicYear       String
+  studentEmail              String
+  purposeOfRequest          PurposeOfRequest
+  officialReceiptNumber     String?
+  paymentProofFileUrl       String
+  paymentVerificationStatus PaymentVerificationStatus  @default(UNVERIFIED)
+  status                    GmcRequestStatus           @default(PENDING)
+  reviewNotes               String?
+  rejectionReason           String?
+  returnReason              String?
+  accuracyCertified        Boolean                    @default(false)
+  accuracyCertifiedAt      DateTime?
+  dateSubmitted             DateTime                   @default(now())
+  dateReleased              DateTime?
+  reviewedById              String?                    @db.Uuid
+  reviewedBy                StaffUser?                 @relation("GmcRequestReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  certificate               Certificate?
+  auditLogs                 AuditLogEntry[]
+
+  @@index([studentId])
+  @@index([status])
+  @@index([dateSubmitted])
+}
+
+model Certificate {
+  id                  String        @id @default(uuid()) @db.Uuid
+  gmcRequestId        String        @unique @db.Uuid
+  gmcRequest          GmcRequest    @relation(fields: [gmcRequestId], references: [id], onDelete: Cascade)
+  certificateNumber   String        @unique
+  studentFullName     String?
+  studentIdNumber     String?
+  courseProgram       String?
+  academicYear        String?
+  purposeOfCertificate String?
+  generatedPdfUrl     String?
+  previewHtml         String?
+  dateOfIssuance     DateTime      @default(now())
+  authorizedSignatory String
+  officeDesignation   String        @default("Discipline Office")
+}
+
+model StaffUser {
+  id                 String           @id @default(uuid()) @db.Uuid
+  name               String
+  email              String           @unique
+  passwordHash       String
+  mustChangePassword Boolean          @default(true)
+  isActive           Boolean          @default(true)
+  role               StaffRole
+  reviewedRequests   GmcRequest[]     @relation("GmcRequestReviewedBy")
+  auditLogEntries     AuditLogEntry[]  @relation("AuditLogActor")
+  sessions           StaffSession[]
+}
+
+model StaffSession {
+  id           String    @id @default(uuid()) @db.Uuid
+  staffUserId  String    @db.Uuid
+  staffUser    StaffUser @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+  tokenHash    String    @unique
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  ipAddress    String?
+  userAgent    String?
+
+  @@index([staffUserId])
+  @@index([expiresAt])
+}
+
+model StaffLoginAttempt {
+  id          String   @id @default(uuid()) @db.Uuid
+  email       String?
+  ipAddress   String?
+  success     Boolean  @default(false)
+  attemptedAt DateTime @default(now())
+
+  @@index([email, attemptedAt])
+  @@index([ipAddress, attemptedAt])
+}
+
+model AuditLogEntry {
+  id           String      @id @default(uuid()) @db.Uuid
+  gmcRequestId String?     @db.Uuid
+  gmcRequest   GmcRequest? @relation(fields: [gmcRequestId], references: [id], onDelete: Cascade)
+  actorId      String?     @db.Uuid
+  actor        StaffUser?  @relation("AuditLogActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action       String
+  timestamp    DateTime    @default(now())
+  notes        String?
+
+  @@index([gmcRequestId, timestamp])
+  @@index([actorId])
+}
+
+model NumberingCounter {
+  id              String         @id @default(uuid()) @db.Uuid
+  kind            NumberingKind
+  period          String
+  currentSequence Int            @default(0)
+
+  @@unique([kind, period])
+}
