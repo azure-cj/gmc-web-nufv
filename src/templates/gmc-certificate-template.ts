@@ -81,10 +81,6 @@ export function buildGoodMoralCertificateHtml(
         print-color-adjust: exact;
       }
 
-      .sheet {
-        min-height: 9.4in;
-      }
-
       .top-row {
         display: flex;
         justify-content: space-between;
