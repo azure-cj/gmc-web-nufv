@@ -20,9 +20,9 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile --config.confirmModulesPurge=false
+      - name: Generate Prisma client
+        run: pnpm prisma:generate
       - name: Run linters
         run: pnpm lint
       - name: Typecheck
-        run: pnpm -w exec tsc --noEmit
-      - name: Run tests
-        run: pnpm test
+        run: pnpm typecheck

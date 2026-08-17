@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "crypto";
-import type { StaffSession, StaffUser, PrismaClient } from "@prisma/client";
+import type { Prisma, StaffSession, StaffUser, PrismaClient } from "@prisma/client";
 import type { NextRequest, NextResponse } from "next/server";
 
 export const STAFF_SESSION_COOKIE_NAME = "gmc_staff_session";
@@ -201,7 +201,7 @@ export async function revokeStaffSession(
 }
 
 export async function revokeOtherStaffSessions(
-  db: PrismaClient | Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0],
+  db: PrismaClient | Prisma.TransactionClient,
   staffUserId: string,
   currentSessionId: string,
 ): Promise<number> {
@@ -218,5 +218,4 @@ export async function revokeOtherStaffSessions(
 
   return result.count;
 }
-
 
