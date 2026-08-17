@@ -1,7 +1,6 @@
 const config = {
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
-    "./frontend/src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
