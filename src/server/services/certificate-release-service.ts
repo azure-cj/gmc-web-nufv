@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { createConfiguredEmailService, getEmailFromAddress, getReleaseContactDetails } from "@/lib/email";
-import { localStorageService } from "@/lib/storage";
+import { fetchPrivateStorageFile } from "@/lib/storage/private-file";
+import { getStorageService } from "@/lib/storage";
 import { buildCertificatePreviewHtmlFromEditableValues, buildCertificateReviewDraft, buildCertificateReviewEditableValues, loadGeneratedCertificateReviewRequest } from "./certificate-review-service";
 import { renderCertificateHtmlToPdfBuffer } from "./certificate-pdf-service";
 import { updateGmcRequestStatusInTransaction } from "./gmc-request-service";
@@ -13,8 +14,8 @@ export interface ReleaseGeneratedCertificateInput {
 
 export interface ReleaseGeneratedCertificateResult {
   draft: Awaited<ReturnType<typeof buildCertificateReviewDraft>>;
-  deliveryFailed: boolean;
-  deliveryError: string | null;
+  emailSent: boolean;
+  emailMessage: string | null;
 }
 
 function escapeHtml(value: string): string {
@@ -122,12 +123,13 @@ async function ensurePdfAttachmentPath(
     certificate.dateOfIssuance,
     {
       studentTitlePrefix: request.studentTitlePrefix ?? null,
+      term: request.term ?? null,
       purposeOfRequest: request.purposeOfRequest,
       officialReceiptNumber: request.officialReceiptNumber ?? null,
     },
   );
   const pdfBuffer = await renderCertificateHtmlToPdfBuffer(certificateHtml);
-  const storedPdf = await localStorageService.upload({
+  const storedPdf = await getStorageService().upload({
     buffer: pdfBuffer,
     filename: `${certificate.certificateNumber}.pdf`,
     contentType: "application/pdf",
@@ -167,6 +169,8 @@ export async function releaseGeneratedCertificate(
 
   const normalizedReviewNotes = input.reviewNotes?.trim() || currentRequest.reviewNotes || null;
   const certificate = currentRequest.certificate;
+  let emailSent = false;
+  let emailMessage: string | null = null;
 
   try {
     const attachment = await ensurePdfAttachmentPath(currentRequest);
@@ -181,6 +185,7 @@ export async function releaseGeneratedCertificate(
           certificate.dateOfIssuance,
           {
             studentTitlePrefix: currentRequest.studentTitlePrefix ?? null,
+            term: currentRequest.term ?? null,
             purposeOfRequest: currentRequest.purposeOfRequest,
             officialReceiptNumber:
               currentRequest.officialReceiptNumber ?? null,
@@ -189,33 +194,44 @@ export async function releaseGeneratedCertificate(
       },
     });
 
-    const emailService = createConfiguredEmailService();
-
-    await emailService.send({
-      from: emailFrom,
-      replyTo: contactDetails.email ?? undefined,
-      to: currentRequest.studentEmail,
-      subject: `Good Moral Certificate ready - ${certificate.certificateNumber}`,
-      text: buildEmailTextPayload({
-        certificateNumber: certificate.certificateNumber,
-        contactName: contactDetails.officeName,
-        contactEmail: contactDetails.email,
-        contactPhone: contactDetails.phone,
-      }),
-      html: buildEmailHtmlPayload({
-        certificateNumber: certificate.certificateNumber,
-        contactName: contactDetails.officeName,
-        contactEmail: contactDetails.email,
-        contactPhone: contactDetails.phone,
-      }),
-      attachments: [
-        {
-          filename: `${certificate.certificateNumber}.pdf`,
-          path: attachment.absolutePath,
-          contentType: "application/pdf",
-        },
-      ],
-    });
+    try {
+      const emailService = createConfiguredEmailService();
+      // TODO: Remove this fallback once real EmailService delivery is fully configured.
+      await emailService.send({
+        from: emailFrom,
+        replyTo: contactDetails.email ?? undefined,
+        to: currentRequest.studentEmail,
+        subject: `Good Moral Certificate ready - ${certificate.certificateNumber}`,
+        text: buildEmailTextPayload({
+          certificateNumber: certificate.certificateNumber,
+          contactName: contactDetails.officeName,
+          contactEmail: contactDetails.email,
+          contactPhone: contactDetails.phone,
+        }),
+        html: buildEmailHtmlPayload({
+          certificateNumber: certificate.certificateNumber,
+          contactName: contactDetails.officeName,
+          contactEmail: contactDetails.email,
+          contactPhone: contactDetails.phone,
+        }),
+        attachments: [
+          {
+            filename: `${certificate.certificateNumber}.pdf`,
+            content: (await fetchPrivateStorageFile(attachment.generatedPdfUrl)).buffer,
+            contentType: "application/pdf",
+          },
+        ],
+      });
+      emailSent = true;
+      emailMessage = "Certificate released and emailed.";
+    } catch (error) {
+      emailSent = false;
+      emailMessage =
+        error instanceof Error
+          ? error.message
+          : "Certificate released — email not sent (not yet configured).";
+      console.error("Certificate email skipped or failed:", error);
+    }
 
     await db.$transaction((tx) =>
       updateGmcRequestStatusInTransaction(tx, {
@@ -225,12 +241,16 @@ export async function releaseGeneratedCertificate(
         reviewNotes: normalizedReviewNotes,
         dateReleased: new Date(),
         actorId: input.staffUserId,
-        auditAction: "CERTIFICATE_RELEASED_AND_EMAILED",
-        auditNotes: `Certificate ${certificate.certificateNumber} released and emailed.`,
+        auditAction: emailSent
+          ? "CERTIFICATE_RELEASED_AND_EMAILED"
+          : "CERTIFICATE_RELEASED_EMAIL_NOT_SENT",
+        auditNotes: emailSent
+          ? `Certificate ${certificate.certificateNumber} released and emailed.`
+          : `Certificate ${certificate.certificateNumber} released — email not sent (not yet configured).`,
       }),
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to send the release email.";
+    const message = error instanceof Error ? error.message : "Unable to release the certificate.";
     const failureReviewNotes = [
       normalizedReviewNotes,
       `Delivery failed: ${message}`,
@@ -258,8 +278,8 @@ export async function releaseGeneratedCertificate(
 
     return {
       draft: buildCertificateReviewDraft(refreshedFailure),
-      deliveryFailed: true,
-      deliveryError: message,
+      emailSent: false,
+      emailMessage: message,
     };
   }
 
@@ -271,7 +291,7 @@ export async function releaseGeneratedCertificate(
 
   return {
     draft: buildCertificateReviewDraft(refreshed),
-    deliveryFailed: false,
-    deliveryError: null,
+    emailSent,
+    emailMessage,
   };
 }

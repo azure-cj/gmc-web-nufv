@@ -5,6 +5,8 @@ import {
   GMC_REQUEST_TITLE_PREFIX_VALUES,
   type GmcRequestAcademicYearValue,
   type GmcRequestPurposeValue,
+  GMC_REQUEST_TERM_VALUES,
+  type GmcRequestTermValue,
   type GmcRequestTitlePrefixValue,
 } from "./constants";
 
@@ -16,6 +18,7 @@ export type GmcRequestFieldName =
   | "lastName"
   | "courseProgram"
   | "academicYear"
+  | "term"
   | "purposeOfRequest"
   | "email"
   | "paymentProofFile"
@@ -31,6 +34,7 @@ export interface GmcRequestSubmissionInput {
   lastName: string;
   courseProgram: string;
   academicYear: string;
+  term: string;
   purposeOfRequest: string;
   email: string;
   paymentProofFile: File | null;
@@ -45,6 +49,7 @@ export interface GmcRequestSubmissionValues {
   lastName: string;
   courseProgram: string;
   academicYear: GmcRequestAcademicYearValue;
+  term: GmcRequestTermValue;
   purposeOfRequest: GmcRequestPurposeValue;
   email: string;
   paymentProofFile: File;
@@ -133,6 +138,7 @@ export async function validateGmcRequestSubmission(
   const lastName = input.lastName.trim();
   const courseProgram = input.courseProgram.trim();
   const academicYear = input.academicYear.trim();
+  const term = input.term.trim();
   const purposeOfRequest = input.purposeOfRequest.trim();
   const email = input.email.trim();
 
@@ -182,6 +188,12 @@ export async function validateGmcRequestSubmission(
     fieldErrors.academicYear = "Select a valid academic year.";
   }
 
+  if (!term) {
+    fieldErrors.term = "Term is required.";
+  } else if (!GMC_REQUEST_TERM_VALUES.includes(term as GmcRequestTermValue)) {
+    fieldErrors.term = "Select a valid term.";
+  }
+
   if (!purposeOfRequest) {
     fieldErrors.purposeOfRequest = "Purpose of request is required.";
   } else if (
@@ -225,6 +237,7 @@ export async function validateGmcRequestSubmission(
       lastName,
       courseProgram,
       academicYear: academicYear as GmcRequestAcademicYearValue,
+      term: term as GmcRequestTermValue,
       purposeOfRequest: purposeOfRequest as GmcRequestPurposeValue,
       email,
       paymentProofFile: input.paymentProofFile,

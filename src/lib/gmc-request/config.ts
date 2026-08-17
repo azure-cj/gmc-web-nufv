@@ -1,7 +1,6 @@
 import { GMC_REQUEST_ACADEMIC_YEAR_OPTIONS } from "./constants";
 
 export const DEFAULT_GMC_REQUEST_FEE_PHP = 150;
-export const DEFAULT_GMC_CERTIFICATE_TERM_LABEL = "Term #";
 
 export function getGmcRequestFeePhp(): number {
   const rawValue =
@@ -28,8 +27,4 @@ export function formatPhpCurrency(amount: number): string {
 
 export function getGmcRequestAcademicYearOptions(): readonly string[] {
   return GMC_REQUEST_ACADEMIC_YEAR_OPTIONS;
-}
-
-export function getGmcCertificateTermLabel(): string {
-  return process.env.GMC_CERTIFICATE_TERM_LABEL?.trim() || DEFAULT_GMC_CERTIFICATE_TERM_LABEL;
 }

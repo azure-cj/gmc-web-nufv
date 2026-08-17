@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         mustChangePassword: newUser.mustChangePassword,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Create staff user error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred while creating the account." },

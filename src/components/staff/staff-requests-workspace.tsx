@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   buildStaffDashboardUrl,
+  type StaffDashboardOverviewFilters,
   type StaffDashboardSearchParams,
 } from "@/lib/staff-dashboard-query";
 import {
@@ -13,14 +14,18 @@ import {
   type StaffDashboardData,
   type StaffDashboardFilters,
 } from "@/server/services/staff-dashboard-service";
+import StaffDashboardOverview from "@/components/staff/staff-dashboard-overview";
+import type { StaffDashboardOverviewData } from "@/server/services/staff-dashboard-overview-service";
 
 interface StaffRequestsWorkspaceProps {
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   basePath: string;
   detailBasePath: string;
   data: StaffDashboardData;
   filters: StaffDashboardFilters;
+  overview?: StaffDashboardOverviewData;
+  overviewFilters?: StaffDashboardOverviewFilters;
   searchParams?: StaffDashboardSearchParams;
 }
 
@@ -50,12 +55,6 @@ function statusBadgeClass(status: string): string {
     default:
       return "border-[#8A94A6]/40 bg-[#8A94A6]/15 text-[#4A5260]";
   }
-}
-
-function summaryBadgeClass(label: string): string {
-  return label === "Requires Action"
-    ? "border-[#E0B50F]/40 bg-[#E0B50F]/15 text-[#8F7306]"
-    : "border-[#8A94A6]/40 bg-[#8A94A6]/15 text-[#4A5260]";
 }
 
 function buildRequestActionHref(
@@ -101,6 +100,8 @@ export default function StaffRequestsWorkspace({
   detailBasePath,
   data,
   filters,
+  overview,
+  overviewFilters,
 }: StaffRequestsWorkspaceProps) {
   const showingStart = data.pagination.totalResults === 0 ? 0 : (data.pagination.page - 1) * data.pagination.pageSize + 1;
   const showingEnd = data.pagination.totalResults === 0 ? 0 : Math.min(data.pagination.page * data.pagination.pageSize, data.pagination.totalResults);
@@ -114,69 +115,77 @@ export default function StaffRequestsWorkspace({
 
   return (
     <section className="space-y-8">
-      <div className="rounded-[2rem] border border-[#2D2D3F] bg-[#1E1E2C] p-6 shadow-xl sm:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <h2 className="text-3xl font-bold tracking-tight text-white">
-              {title}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[#94A3B8]">
-              {description}
-            </p>
-          </div>
-
-          <div className="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4 w-full lg:w-auto">
-            {/* Card 1: Blue Accent (#3B8FF3) */}
-            <div className="relative overflow-hidden rounded-2xl border border-[#2D2D3F] bg-[#242436] p-5 shadow-[0_4px_20px_-2px_rgba(59,143,243,0.15)]">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-[#3B8FF3]" />
-              <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#3B8FF3]">
-                Total Requests
-              </p>
-              <p className="mt-3 font-mono text-3xl font-bold text-white tabular-nums">
-                {data.summary.totalRequests}
+      {overview ? (
+        <StaffDashboardOverview
+          basePath={basePath}
+          filters={overviewFilters ?? { ...filters, purposeFrom: "", purposeTo: "" }}
+          data={overview}
+        />
+      ) : (
+        <div className="rounded-[2rem] border border-[#2D2D3F] bg-[#1E1E2C] p-6 shadow-xl sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <h2 className="text-3xl font-bold tracking-tight text-white">
+                {title}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[#94A3B8]">
+                {description}
               </p>
             </div>
 
-            {/* Card 2: Gold Accent (#E0B50F) */}
-            <div className="relative overflow-hidden rounded-2xl border border-[#2D2D3F] bg-[#242436] p-5 shadow-[0_4px_20px_-2px_rgba(224,181,15,0.15)]">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-[#E0B50F]" />
-              <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#E0B50F]">
-                Pending
-              </p>
-              <div className="mt-3 flex items-center justify-between gap-2">
-                <p className="font-mono text-3xl font-bold text-white tabular-nums">
-                  {data.summary.pendingRequests}
+            <div className="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4 w-full lg:w-auto">
+              {/* Card 1: Blue Accent (#3B8FF3) */}
+              <div className="relative overflow-hidden rounded-2xl border border-[#2D2D3F] bg-[#242436] p-5 shadow-[0_4px_20px_-2px_rgba(59,143,243,0.15)]">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-[#3B8FF3]" />
+                <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#3B8FF3]">
+                  Total Requests
                 </p>
-                <span className="rounded-full border border-[#E0B50F]/40 bg-[#E0B50F]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#E0B50F]">
-                  Requires Action
-                </span>
+                <p className="mt-3 font-mono text-3xl font-bold text-white tabular-nums">
+                  {data.summary.totalRequests}
+                </p>
               </div>
-            </div>
 
-            {/* Card 3: Teal Accent (#34B1AA) */}
-            <div className="relative overflow-hidden rounded-2xl border border-[#2D2D3F] bg-[#242436] p-5 shadow-[0_4px_20px_-2px_rgba(52,177,170,0.15)]">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-[#34B1AA]" />
-              <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#34B1AA]">
-                Approved Today
-              </p>
-              <p className="mt-3 font-mono text-3xl font-bold text-white tabular-nums">
-                {data.summary.approvedToday}
-              </p>
-            </div>
+              {/* Card 2: Gold Accent (#E0B50F) */}
+              <div className="relative overflow-hidden rounded-2xl border border-[#2D2D3F] bg-[#242436] p-5 shadow-[0_4px_20px_-2px_rgba(224,181,15,0.15)]">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-[#E0B50F]" />
+                <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#E0B50F]">
+                  Pending
+                </p>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <p className="font-mono text-3xl font-bold text-white tabular-nums">
+                    {data.summary.pendingRequests}
+                  </p>
+                  <span className="rounded-full border border-[#E0B50F]/40 bg-[#E0B50F]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#E0B50F]">
+                    Requires Action
+                  </span>
+                </div>
+              </div>
 
-            {/* Card 4: Orange Accent (#F29F67) */}
-            <div className="relative overflow-hidden rounded-2xl border border-[#2D2D3F] bg-[#242436] p-5 shadow-[0_4px_20px_-2px_rgba(242,159,103,0.15)]">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-[#F29F67]" />
-              <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#F29F67]">
-                Released This Month
-              </p>
-              <p className="mt-3 font-mono text-3xl font-bold text-white tabular-nums">
-                {data.summary.releasedThisMonth}
-              </p>
+              {/* Card 3: Teal Accent (#34B1AA) */}
+              <div className="relative overflow-hidden rounded-2xl border border-[#2D2D3F] bg-[#242436] p-5 shadow-[0_4px_20px_-2px_rgba(52,177,170,0.15)]">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-[#34B1AA]" />
+                <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#34B1AA]">
+                  Approved Today
+                </p>
+                <p className="mt-3 font-mono text-3xl font-bold text-white tabular-nums">
+                  {data.summary.approvedToday}
+                </p>
+              </div>
+
+              {/* Card 4: Orange Accent (#F29F67) */}
+              <div className="relative overflow-hidden rounded-2xl border border-[#2D2D3F] bg-[#242436] p-5 shadow-[0_4px_20px_-2px_rgba(242,159,103,0.15)]">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-[#F29F67]" />
+                <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#F29F67]">
+                  Released This Month
+                </p>
+                <p className="mt-3 font-mono text-3xl font-bold text-white tabular-nums">
+                  {data.summary.releasedThisMonth}
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <section
         id="requests"

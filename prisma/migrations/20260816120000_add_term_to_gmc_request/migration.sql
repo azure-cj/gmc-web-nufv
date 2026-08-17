@@ -1,0 +1,1 @@
+ALTER TABLE "GmcRequest" ADD COLUMN IF NOT EXISTS "term" TEXT;

@@ -4,6 +4,10 @@ import {
   type StaffDashboardFilters,
   type StaffRequestStatusFilter,
 } from "@/server/services/staff-dashboard-service";
+import {
+  getBusinessDateString,
+  getBusinessMonthRange,
+} from "@/lib/business-time";
 
 type SearchParamValue = string | string[] | undefined;
 
@@ -13,6 +17,13 @@ export interface StaffDashboardSearchParams {
   from?: SearchParamValue;
   to?: SearchParamValue;
   page?: SearchParamValue;
+  purposeFrom?: SearchParamValue;
+  purposeTo?: SearchParamValue;
+}
+
+export interface StaffDashboardOverviewFilters extends StaffDashboardFilters {
+  purposeFrom: string;
+  purposeTo: string;
 }
 
 function firstSearchParam(value: SearchParamValue): string {
@@ -38,6 +49,25 @@ export function parseStaffDashboardFilters(
     from: firstSearchParam(searchParams.from),
     to: firstSearchParam(searchParams.to),
     page: normalizeDashboardPage(Number(firstSearchParam(searchParams.page) || 1)),
+  };
+}
+
+export function parseStaffDashboardOverviewFilters(
+  searchParams: StaffDashboardSearchParams,
+): StaffDashboardOverviewFilters {
+  const baseFilters = parseStaffDashboardFilters(searchParams);
+  const purposeFrom = firstSearchParam(searchParams.purposeFrom);
+  const purposeTo = firstSearchParam(searchParams.purposeTo);
+  const businessMonthRange = getBusinessMonthRange();
+  const defaultPurposeFrom = getBusinessDateString(businessMonthRange.start);
+  const defaultPurposeTo = getBusinessDateString(
+    new Date(businessMonthRange.endExclusive.getTime() - 1),
+  );
+
+  return {
+    ...baseFilters,
+    purposeFrom: purposeFrom || defaultPurposeFrom,
+    purposeTo: purposeTo || defaultPurposeTo,
   };
 }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { consoleEmailService } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
-import { localStorageService } from "@/lib/storage";
+import { getStorageService } from "@/lib/storage";
 import { submitGmcRequest } from "@/server/services/gmc-request-intake-service";
 import { validateGmcRequestSubmission } from "@/lib/gmc-request";
 
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
       lastName: getFormText(formData, "lastName"),
       courseProgram: getFormText(formData, "courseProgram"),
       academicYear: getFormText(formData, "academicYear"),
+      term: getFormText(formData, "term"),
       purposeOfRequest: getFormText(formData, "purposeOfRequest"),
       email: getFormText(formData, "email"),
       paymentProofFile: getFormFile(formData, "paymentProofFile"),
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
 
     const result = await submitGmcRequest(
       prisma,
-      localStorageService,
+      getStorageService(),
       consoleEmailService,
       validation.values,
     );

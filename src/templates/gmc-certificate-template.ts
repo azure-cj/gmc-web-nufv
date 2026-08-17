@@ -1,5 +1,5 @@
 import { PurposeOfRequest } from "@prisma/client";
-import { formatBusinessDate, formatPurposeRemarks, getGmcCertificateTermLabel } from "@/lib/gmc-request";
+import { formatBusinessDate, formatPurposeRemarks } from "@/lib/gmc-request";
 
 export const DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY =
   process.env.GMC_CERTIFICATE_AUTHORIZED_SIGNATORY ?? "SHEILA MARIE R. RELLES, MA";
@@ -12,6 +12,7 @@ export interface GoodMoralCertificateTemplateInput {
   studentFullName: string;
   studentId: string;
   courseProgram: string;
+  term: string;
   academicYear: string;
   studentTitlePrefix: string | null;
   purposeOfRequest: PurposeOfRequest;
@@ -47,7 +48,6 @@ export function buildGoodMoralCertificateHtml(
   input: GoodMoralCertificateTemplateInput,
 ): string {
   const dateOfIssuance = formatBusinessDate(input.dateOfIssuance);
-  const term = getGmcCertificateTermLabel();
   const titlePrefix = buildCertificateTitlePrefixLine(
     input.studentTitlePrefix,
     input.studentFullName,
@@ -214,7 +214,7 @@ export function buildGoodMoralCertificateHtml(
       </div>
 
       <p class="paragraph">
-        This is to certify that ${escapeHtml(input.studentFullName)}, with student number ${escapeHtml(input.studentId)}, was a student of ${escapeHtml(input.courseProgram)} at NU Fairview for ${escapeHtml(term)}, Academic Year ${escapeHtml(input.academicYear)}.
+        This is to certify that ${escapeHtml(input.studentFullName)}, with student number ${escapeHtml(input.studentId)}, was a student of ${escapeHtml(input.courseProgram)} at NU Fairview for Term ${escapeHtml(input.term)}, Academic Year ${escapeHtml(input.academicYear)}.
       </p>
 
       <p class="paragraph">

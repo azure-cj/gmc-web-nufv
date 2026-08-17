@@ -8,6 +8,7 @@ import {
   formatRequestStatusLabel,
   getFileViewerKind,
 } from "@/lib/gmc-request";
+import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file";
 import StaffRequestReviewClient from "@/components/staff/staff-request-review-client";
 
 export const dynamic = "force-dynamic";
@@ -155,6 +156,7 @@ export default async function StaffRequestReviewPage({
   }
 
   const proofViewerKind = getFileViewerKind(request.paymentProofFileUrl);
+  const proofFileUrl = getPrivateStorageDownloadUrl(request.paymentProofFileUrl);
   const returnTo = safeReturnTo(firstSearchParam(resolvedSearchParams.returnTo) || "/staff/gmc-requests");
   const mode = firstSearchParam(resolvedSearchParams.mode);
   const reviewSearchParams = new URLSearchParams();
@@ -163,42 +165,34 @@ export default async function StaffRequestReviewPage({
     request.status === "GENERATED" || request.status === "DELIVERY_FAILED"
       ? `/staff/gmc-requests/${request.id}/review?${reviewSearchParams.toString()}`
       : null;
-  const studentRecord = request.student;
   const studentRows = [
     {
       label: "Student ID",
       snapshot: request.studentId,
-      current: studentRecord.studentId,
     },
     {
       label: "First Name",
       snapshot: request.studentFirstName,
-      current: studentRecord.firstName,
     },
     {
       label: "Middle Initial",
       snapshot: request.studentMiddleInitial ?? "-",
-      current: studentRecord.middleInitial ?? "-",
     },
     {
       label: "Last Name",
       snapshot: request.studentLastName,
-      current: studentRecord.lastName,
     },
     {
       label: "Course / Program",
       snapshot: request.studentCourseProgram,
-      current: studentRecord.courseProgram,
     },
     {
       label: "Academic Year",
       snapshot: request.studentAcademicYear,
-      current: studentRecord.academicYear,
     },
     {
       label: "Email",
       snapshot: request.studentEmail,
-      current: studentRecord.email,
     },
   ] as const;
 
@@ -272,25 +266,6 @@ export default async function StaffRequestReviewPage({
                     ))}
                   </dl>
                 </section>
-
-                <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-sm font-semibold text-slate-900">
-                    Institutional record
-                  </p>
-                  <dl className="mt-4 grid gap-3">
-                    {studentRows.map((row) => (
-                      <div
-                        key={row.label}
-                        className="flex flex-col gap-1 rounded-2xl bg-white px-4 py-3 shadow-sm"
-                      >
-                        <dt className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
-                          {row.label}
-                        </dt>
-                        <dd className="text-sm font-medium text-slate-900">{row.current}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
               </div>
             ),
           })}
@@ -302,13 +277,13 @@ export default async function StaffRequestReviewPage({
                 <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-100">
                   {proofViewerKind === "image" ? (
                     <img
-                      src={request.paymentProofFileUrl}
+                      src={proofFileUrl}
                       alt={`Payment proof for ${request.requestReferenceNumber}`}
                       className="h-auto w-full object-contain"
                     />
                   ) : proofViewerKind === "pdf" ? (
                     <iframe
-                      src={request.paymentProofFileUrl}
+                      src={proofFileUrl}
                       title={`Payment proof for ${request.requestReferenceNumber}`}
                       className="h-[36rem] w-full"
                     />
@@ -318,7 +293,7 @@ export default async function StaffRequestReviewPage({
                         This proof file can be opened directly in a new tab.
                       </p>
                       <a
-                        href={request.paymentProofFileUrl}
+                        href={proofFileUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex rounded-2xl bg-[#1E1E2C] px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
@@ -329,7 +304,7 @@ export default async function StaffRequestReviewPage({
                   )}
                 </div>
                 <p className="text-sm text-slate-500">
-                  File: {request.paymentProofFileUrl}
+                  File is stored securely and can be viewed through the secure preview above.
                 </p>
               </div>
             ),

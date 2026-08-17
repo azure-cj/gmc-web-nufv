@@ -169,15 +169,6 @@ export async function POST(
         reviewNotes,
       });
 
-      if (result.deliveryFailed) {
-        return NextResponse.json({
-          draft: result.draft,
-          formError: result.deliveryError
-            ? `Delivery failed: ${result.deliveryError}`
-            : "Delivery failed. Please retry sending the certificate.",
-        });
-      }
-
       return NextResponse.json({ draft: result.draft });
     } catch (error) {
       return handleRouteError(error);
@@ -268,6 +259,7 @@ export async function POST(
           currentCertificate.dateOfIssuance,
           {
             studentTitlePrefix: currentRequest.studentTitlePrefix ?? null,
+            term: currentRequest.term ?? null,
             purposeOfRequest: currentRequest.purposeOfRequest,
             officialReceiptNumber: currentRequest.officialReceiptNumber ?? null,
           },

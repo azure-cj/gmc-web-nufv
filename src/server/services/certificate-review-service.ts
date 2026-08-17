@@ -18,6 +18,15 @@ export type LoadedGeneratedCertificateReviewRequest = Prisma.GmcRequestGetPayloa
   include: {
     certificate: true;
     reviewedBy: true;
+    auditLogs: {
+      orderBy: {
+        timestamp: "desc";
+      };
+      take: 5;
+      include: {
+        actor: true;
+      };
+    };
   };
 }>;
 
@@ -34,6 +43,7 @@ export interface CertificateReviewDraft {
     dateSubmitted: string;
     dateReleased: string | null;
     reviewedByName: string | null;
+    releaseDeliveryStatus: "EMAIL_SENT" | "EMAIL_NOT_SENT" | null;
   };
   certificate: {
     id: string;
@@ -81,6 +91,7 @@ function buildCertificatePreviewHtml(
   dateOfIssuance: Date,
   context: {
     studentTitlePrefix: string | null;
+    term: string | null;
     purposeOfRequest: PurposeOfRequest;
     officialReceiptNumber: string | null;
   },
@@ -90,6 +101,7 @@ function buildCertificatePreviewHtml(
     studentFullName: values.studentFullName,
     studentId: values.studentIdNumber,
     courseProgram: values.courseProgram,
+    term: context.term ?? "",
     academicYear: values.academicYear,
     studentTitlePrefix: context.studentTitlePrefix,
     purposeOfRequest: context.purposeOfRequest,
@@ -111,6 +123,11 @@ export async function loadGeneratedCertificateReviewRequest(
     include: {
       certificate: true,
       reviewedBy: true,
+      auditLogs: {
+        orderBy: { timestamp: "desc" },
+        take: 5,
+        include: { actor: true },
+      },
     },
   });
 }
@@ -143,6 +160,10 @@ export function buildCertificateReviewDraft(
   const editableValues = buildCertificateReviewEditableValues(request);
   const certificateNumber = certificate?.certificateNumber ?? "";
   const dateOfIssuance = certificate?.dateOfIssuance ?? request.dateSubmitted;
+  const latestReleaseAudit = request.auditLogs.find((entry) =>
+    entry.action === "CERTIFICATE_RELEASED_AND_EMAILED" ||
+    entry.action === "CERTIFICATE_RELEASED_EMAIL_NOT_SENT",
+  );
 
   return {
     request: {
@@ -157,6 +178,11 @@ export function buildCertificateReviewDraft(
       dateSubmitted: request.dateSubmitted.toISOString(),
       dateReleased: request.dateReleased ? request.dateReleased.toISOString() : null,
       reviewedByName: request.reviewedBy?.name ?? null,
+      releaseDeliveryStatus: latestReleaseAudit
+        ? latestReleaseAudit.action === "CERTIFICATE_RELEASED_AND_EMAILED"
+          ? "EMAIL_SENT"
+          : "EMAIL_NOT_SENT"
+        : null,
     },
     certificate: certificate
       ? {
@@ -174,6 +200,7 @@ export function buildCertificateReviewDraft(
             dateOfIssuance,
             {
               studentTitlePrefix: request.studentTitlePrefix ?? null,
+              term: request.term ?? null,
               purposeOfRequest: request.purposeOfRequest,
               officialReceiptNumber: request.officialReceiptNumber ?? null,
             },
@@ -192,6 +219,7 @@ export function buildCertificatePreviewHtmlFromEditableValues(
   dateOfIssuance: Date,
   context: {
     studentTitlePrefix: string | null;
+    term: string | null;
     purposeOfRequest: PurposeOfRequest;
     officialReceiptNumber: string | null;
   },

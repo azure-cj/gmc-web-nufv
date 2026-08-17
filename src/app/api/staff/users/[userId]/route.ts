@@ -126,7 +126,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         isActive: updatedUser.isActive,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Update staff user error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred while updating the account." },

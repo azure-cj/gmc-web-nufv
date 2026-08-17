@@ -13,6 +13,7 @@ type DatabaseClient = PrismaClient;
 export interface CreateGmcRequestInput {
   studentId: string;
   titlePrefix?: string | null;
+  term: string;
   purposeOfRequest: PurposeOfRequest;
   paymentProofFileUrl: string;
   submittedAt?: Date;
@@ -75,18 +76,19 @@ export async function createGmcRequest(
     );
 
     const request = await tx.gmcRequest.create({
-      data: {
-        requestReferenceNumber,
-        studentId: student.studentId,
-        studentTitlePrefix: input.titlePrefix ?? null,
-        studentFirstName: student.firstName,
-        studentMiddleInitial: student.middleInitial,
-        studentLastName: student.lastName,
-        studentCourseProgram: student.courseProgram,
-        studentAcademicYear: student.academicYear,
-        studentEmail: student.email,
-        purposeOfRequest: input.purposeOfRequest,
-        paymentProofFileUrl: input.paymentProofFileUrl,
+        data: {
+          requestReferenceNumber,
+          studentId: student.studentId,
+          studentTitlePrefix: input.titlePrefix ?? null,
+          studentFirstName: student.firstName,
+          studentMiddleInitial: student.middleInitial,
+          studentLastName: student.lastName,
+          studentCourseProgram: student.courseProgram,
+          studentAcademicYear: student.academicYear,
+          term: input.term,
+          studentEmail: student.email,
+          purposeOfRequest: input.purposeOfRequest,
+          paymentProofFileUrl: input.paymentProofFileUrl,
         dateSubmitted: submittedAt,
       },
     });

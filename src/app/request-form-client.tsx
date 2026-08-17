@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
 import {
   formatPhpCurrency,
@@ -7,6 +8,7 @@ import {
   GMC_REQUEST_PAYMENT_PROOF_ALLOWED_EXTENSIONS,
   GMC_REQUEST_PAYMENT_PROOF_ALLOWED_MIME_TYPES,
   GMC_REQUEST_PURPOSE_OPTIONS,
+  GMC_REQUEST_TERM_OPTIONS,
   GMC_REQUEST_TITLE_PREFIX_OPTIONS,
   type GmcRequestFieldErrors,
   validateGmcRequestSubmission,
@@ -24,6 +26,7 @@ interface RequestFormState {
   lastName: string;
   courseProgram: string;
   academicYear: string;
+  term: string;
   purposeOfRequest: string;
   email: string;
   paymentProofFile: File | null;
@@ -46,6 +49,7 @@ const INITIAL_FORM_STATE: RequestFormState = {
   lastName: "",
   courseProgram: "",
   academicYear: "",
+  term: "",
   purposeOfRequest: "",
   email: "",
   paymentProofFile: null,
@@ -80,6 +84,7 @@ function formDataFromValues(values: RequestFormState): FormData {
   formData.set("lastName", values.lastName);
   formData.set("courseProgram", values.courseProgram);
   formData.set("academicYear", values.academicYear);
+  formData.set("term", values.term);
   formData.set("purposeOfRequest", values.purposeOfRequest);
   formData.set("email", values.email);
   formData.set("accuracyCertified", String(values.accuracyCertified));
@@ -106,6 +111,7 @@ export default function RequestFormClient({
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submission, setSubmission] = useState<SubmissionResult | null>(null);
+  const [bannerImageFailed, setBannerImageFailed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const updateField = <K extends keyof RequestFormState>(
@@ -163,6 +169,7 @@ export default function RequestFormClient({
           lastName: validation.values.lastName,
           courseProgram: validation.values.courseProgram,
           academicYear: validation.values.academicYear,
+          term: validation.values.term,
           purposeOfRequest: validation.values.purposeOfRequest,
           email: validation.values.email,
           paymentProofFile: validation.values.paymentProofFile,
@@ -267,17 +274,46 @@ export default function RequestFormClient({
 
   return (
     <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white/95 shadow-[0_30px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
-      <div className="border-b border-[#2C4368]/20 bg-[linear-gradient(135deg,#102040_0%,#2C4368_100%)] px-8 py-8 text-white">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#E0C07A]">
-          Discipline Office
-        </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-          Good Moral Certificate Request
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-100/85">
-          Fill out the form below to submit your request.
-        </p>
-      </div>
+      {!bannerImageFailed ? (
+        <div className="overflow-hidden rounded-t-[2rem] border-b border-slate-200 bg-white leading-none">
+          <div className="relative overflow-hidden rounded-t-[2rem]">
+            <img
+              src="/images/form/bannerform.png"
+              alt="NU Fairview Discipline Office — Good Moral Certificate Request"
+              className="block h-auto w-full"
+              onError={() => setBannerImageFailed(true)}
+            />
+
+            <Link
+              href="/track-request"
+              className="absolute right-3 top-[68%] hidden -translate-y-1/2 items-center justify-center rounded-full bg-[#E0C07A] px-5 py-3 text-sm font-semibold text-[#102040] shadow-[0_10px_24px_rgba(16,32,64,0.25)] ring-1 ring-[#E0C07A]/70 transition duration-200 hover:-translate-y-[54%] hover:scale-[1.02] hover:shadow-[0_14px_28px_rgba(16,32,64,0.3)] sm:inline-flex"
+            >
+              Track Request Status
+            </Link>
+          </div>
+
+          <div className="border-t border-[#E0C07A]/30 bg-white px-4 py-4 sm:hidden">
+            <Link
+              href="/track-request"
+              className="inline-flex w-full items-center justify-center rounded-full bg-[#E0C07A] px-5 py-3 text-sm font-semibold text-[#102040] shadow-[0_10px_24px_rgba(16,32,64,0.22)] ring-1 ring-[#E0C07A]/70 transition hover:scale-[1.01] hover:shadow-[0_14px_28px_rgba(16,32,64,0.28)]"
+            >
+              Track Request Status
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="border-b border-[#2C4368]/20 bg-[linear-gradient(135deg,#102040_0%,#2C4368_100%)] px-8 py-8 text-white">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#E0C07A]">
+            Discipline Office
+          </p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+            Good Moral Certificate Request
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-100/85">
+            Fill out the form below to submit your request.
+          </p>
+        </div>
+      )}
 
       <form className="px-8 py-8" onSubmit={handleSubmit} noValidate>
         {formError ? (
@@ -473,6 +509,35 @@ export default function RequestFormClient({
                 {errors.academicYear ? (
                   <p id="academicYear-error" className="mt-2 text-sm text-rose-700">
                     {errors.academicYear}
+                  </p>
+                ) : null}
+              </div>
+
+              <div>
+                <label htmlFor="term" className="text-sm font-medium text-slate-800">
+                  Term
+                </label>
+                <select
+                  id="term"
+                  name="term"
+                  value={values.term}
+                  onChange={(event) => updateField("term", event.target.value)}
+                  className={fieldClassName(Boolean(errors.term))}
+                  aria-invalid={Boolean(errors.term)}
+                  aria-describedby={errors.term ? "term-error" : undefined}
+                >
+                  <option value="" disabled>
+                    Select term
+                  </option>
+                  {GMC_REQUEST_TERM_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.term ? (
+                  <p id="term-error" className="mt-2 text-sm text-rose-700">
+                    {errors.term}
                   </p>
                 ) : null}
               </div>

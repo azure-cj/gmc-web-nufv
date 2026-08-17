@@ -102,11 +102,11 @@ export async function POST(request: Request) {
     setStaffSessionCookie(response, sessionToken);
 
     return response;
-  } catch (error: any) {
+  } catch (error) {
     console.error("Staff login failed (REAL ERROR):", error);
 
     const devDetails =
-      process.env.NODE_ENV !== "production" && error?.message
+      process.env.NODE_ENV !== "production" && error instanceof Error
         ? `: ${error.message}`
         : "";
 

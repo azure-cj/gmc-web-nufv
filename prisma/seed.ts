@@ -120,6 +120,7 @@ async function main() {
   await createGmcRequest(prisma, {
     studentId: juan.studentId,
     titlePrefix: "Mr.",
+    term: "1",
     purposeOfRequest: PurposeOfRequest.SCHOLARSHIP,
     paymentProofFileUrl: "/uploads/sample-payment-proofs/juan-scholarship.pdf",
     submittedAt: june10,
@@ -129,6 +130,7 @@ async function main() {
   const request2 = await createGmcRequest(prisma, {
     studentId: maria.studentId,
     titlePrefix: "Mrs.",
+    term: "2",
     purposeOfRequest: PurposeOfRequest.EMPLOYMENT,
     paymentProofFileUrl: "/uploads/sample-payment-proofs/maria-employment.pdf",
     submittedAt: june12,
@@ -138,6 +140,7 @@ async function main() {
   const request3 = await createGmcRequest(prisma, {
     studentId: enzo.studentId,
     titlePrefix: "Mr.",
+    term: "3",
     purposeOfRequest: PurposeOfRequest.INTERNSHIP,
     paymentProofFileUrl: "/uploads/sample-payment-proofs/enzo-internship.pdf",
     submittedAt: july02,
@@ -147,6 +150,7 @@ async function main() {
   const request4 = await createGmcRequest(prisma, {
     studentId: lara.studentId,
     titlePrefix: "Mrs.",
+    term: "4",
     purposeOfRequest: PurposeOfRequest.BOARD_EXAM,
     paymentProofFileUrl: "/uploads/sample-payment-proofs/lara-board-exam.pdf",
     submittedAt: july03,
@@ -156,6 +160,7 @@ async function main() {
   const request5 = await createGmcRequest(prisma, {
     studentId: noah.studentId,
     titlePrefix: "Mr.",
+    term: "5",
     purposeOfRequest: PurposeOfRequest.TRANSFER_OUT,
     paymentProofFileUrl: "/uploads/sample-payment-proofs/noah-transfer-out.pdf",
     submittedAt: july04,
@@ -174,8 +179,8 @@ async function main() {
 
   await issueCertificateForRequest(prisma, {
     gmcRequestId: approvedRequest.id,
-    authorizedSignatory: "Atty. Camille Torres",
-    officeDesignation: "Discipline Office",
+    authorizedSignatory: "SHEILA MARIE R. RELLES, MA",
+    officeDesignation: "SDO Officer-in-Charge",
     dateOfIssuance: june13,
     generatedPdfUrl: "/uploads/generated-certificates/2026-06-000001.pdf",
     actorId: disciplineStaff.id,
@@ -223,8 +228,8 @@ async function main() {
 
   await issueCertificateForRequest(prisma, {
     gmcRequestId: releasedRequest.id,
-    authorizedSignatory: "Atty. Camille Torres",
-    officeDesignation: "Discipline Office",
+    authorizedSignatory: "SHEILA MARIE R. RELLES, MA",
+    officeDesignation: "SDO Officer-in-Charge",
     dateOfIssuance: july08,
     generatedPdfUrl: "/uploads/generated-certificates/2026-07-000001.pdf",
     actorId: disciplineStaff.id,

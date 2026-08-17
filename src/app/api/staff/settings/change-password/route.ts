@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
           : "Password updated successfully.",
       revokedSessionCount: revokedCount,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Settings password update error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred. Please try again." },

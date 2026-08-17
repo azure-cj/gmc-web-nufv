@@ -65,6 +65,7 @@ async function createCertificateFromLoadedRequest(
     studentFullName,
     studentId: studentIdNumber,
     courseProgram,
+    term: request.term ?? "",
     academicYear,
     studentTitlePrefix: request.studentTitlePrefix ?? null,
     purposeOfRequest: request.purposeOfRequest,

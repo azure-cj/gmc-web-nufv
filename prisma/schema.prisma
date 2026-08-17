@@ -65,6 +65,7 @@ model GmcRequest {
   studentLastName           String
   studentCourseProgram      String
   studentAcademicYear       String
+  term                      String?
   studentEmail              String
   purposeOfRequest          PurposeOfRequest
   officialReceiptNumber     String?

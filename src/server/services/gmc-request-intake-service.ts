@@ -80,6 +80,7 @@ export async function submitGmcRequest(
           studentLastName: input.lastName,
           studentCourseProgram: input.courseProgram,
           studentAcademicYear: input.academicYear,
+          term: input.term,
           studentEmail: input.email,
           purposeOfRequest: input.purposeOfRequest as PurposeOfRequest,
           paymentProofFileUrl: uploadedProof.url,

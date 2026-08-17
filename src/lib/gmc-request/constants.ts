@@ -24,6 +24,21 @@ export const GMC_REQUEST_ACADEMIC_YEAR_OPTIONS = [
 export type GmcRequestAcademicYearValue =
   (typeof GMC_REQUEST_ACADEMIC_YEAR_OPTIONS)[number];
 
+export const GMC_REQUEST_TERM_OPTIONS = [
+  { value: "1", label: "Term 1" },
+  { value: "2", label: "Term 2" },
+  { value: "3", label: "Term 3" },
+  { value: "4", label: "Term 4" },
+  { value: "5", label: "Term 5" },
+] as const;
+
+export type GmcRequestTermValue =
+  (typeof GMC_REQUEST_TERM_OPTIONS)[number]["value"];
+
+export const GMC_REQUEST_TERM_VALUES = GMC_REQUEST_TERM_OPTIONS.map(
+  (option) => option.value,
+) as readonly GmcRequestTermValue[];
+
 export const GMC_REQUEST_TITLE_PREFIX_OPTIONS = [
   { value: "Mr.", label: "Mr." },
   { value: "Mrs.", label: "Mrs." },

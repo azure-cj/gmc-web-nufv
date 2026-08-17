@@ -9,6 +9,7 @@ import {
   formatPurposeLabel,
   formatRequestStatusLabel,
 } from "@/lib/gmc-request";
+import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file";
 
 type CertificateReviewAction = "EDIT" | "APPROVE" | "REJECT";
 
@@ -38,6 +39,7 @@ interface CertificateReviewDraft {
     dateSubmitted: string;
     dateReleased: string | null;
     reviewedByName: string | null;
+    releaseDeliveryStatus: "EMAIL_SENT" | "EMAIL_NOT_SENT" | null;
   };
   certificate: {
     id: string;
@@ -268,6 +270,17 @@ export default function StaffCertificateReviewClient({
   const certificate = draft.certificate;
   const isReleased = draft.request.status === "RELEASED";
   const isDeliveryFailed = draft.request.status === "DELIVERY_FAILED";
+  const certificateDownloadUrl = certificate
+    ? getPrivateStorageDownloadUrl(certificate.generatedPdfUrl ?? "")
+    : "";
+  const releaseDeliveryLabel =
+    draft.request.releaseDeliveryStatus === "EMAIL_SENT"
+      ? "Released - Email Sent"
+      : draft.request.releaseDeliveryStatus === "EMAIL_NOT_SENT"
+        ? "Released — Email Not Sent (download and deliver manually)"
+        : isReleased
+          ? "Released"
+          : null;
 
   const syncDraft = (nextDraft: CertificateReviewDraft) => {
     setDraft(nextDraft);
@@ -433,6 +446,18 @@ export default function StaffCertificateReviewClient({
                 className="min-h-[48rem] w-full bg-white"
               />
             </div>
+            {certificate?.generatedPdfUrl ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <a
+                  href={certificateDownloadUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex rounded-2xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Download Certificate PDF
+                </a>
+              </div>
+            ) : null}
             {!certificate?.generatedPdfUrl ? (
               <p className="mt-4 text-sm text-slate-500">
                 Phase 5 will generate the PDF and email delivery. This screen is reviewing the
@@ -627,6 +652,18 @@ export default function StaffCertificateReviewClient({
         <div className="space-y-8">
           <Card title="Delivery Information">
             <div className="space-y-4">
+              {releaseDeliveryLabel ? (
+                <div
+                  className={[
+                    "rounded-2xl border px-4 py-3 text-sm font-semibold",
+                    draft.request.releaseDeliveryStatus === "EMAIL_SENT"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                      : "border-amber-200 bg-amber-50 text-amber-950",
+                  ].join(" ")}
+                >
+                  {releaseDeliveryLabel}
+                </div>
+              ) : null}
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
                   Student Email
@@ -802,11 +839,11 @@ export default function StaffCertificateReviewClient({
             <Card title="Release Status">
               <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-950">
                 <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700">
-                  Released
+                  {releaseDeliveryLabel ?? "Released"}
                 </p>
                 <p className="mt-2 text-sm leading-6">
-                  This certificate has been approved for release. Phase 5 will handle PDF
-                  generation and email delivery.
+                  This certificate has been approved for release. The PDF is available for
+                  download, and email delivery is recorded separately for staff visibility.
                 </p>
               </div>
               <div className="mt-5 flex flex-wrap gap-3">
