@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { formatStaffRoleLabel } from "@/lib/gmc-request";
 
@@ -25,14 +26,16 @@ export default function StaffNavbar({ staffUser }: StaffNavbarProps) {
       <div className="flex items-center gap-4 min-w-0">
         <Link
           href="/staff"
-          className="flex items-center gap-3 shrink-0 rounded-lg p-1 transition focus:outline-none focus:ring-2 focus:ring-[#3B8FF3]"
+          className="flex items-center gap-3 shrink-0 rounded-lg p-1 transition focus:outline-none focus:ring-2 focus:ring-[#E0C07A]"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#3B8FF3] to-[#2563EB] text-white font-bold shadow-sm">
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-            </svg>
-          </div>
+          <Image
+            src="/images/brand/gmclogo.png"
+            alt="GMC logo"
+            width={36}
+            height={36}
+            className="h-9 w-9 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]"
+            priority
+          />
           <div>
             <h1 className="text-base font-bold tracking-tight text-white leading-tight">
               GMC Web

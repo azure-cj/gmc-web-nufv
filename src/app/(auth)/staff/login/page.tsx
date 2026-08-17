@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { loadValidatedStaffSession } from "@/lib/staff-session";
 import StaffLoginForm from "@/components/staff/staff-login-form";
@@ -40,9 +41,19 @@ export default async function StaffLoginPage({
 
             <div className="relative z-10 flex h-full min-h-[560px] flex-col">
               <div className="mt-8 max-w-md">
-                <p className="text-xs font-bold uppercase tracking-[0.45em] text-[#E0C07A]">
-                  GMC WEB
-                </p>
+                <div className="flex items-center gap-3">
+                  <Image
+                    src="/images/brand/gmclogo.png"
+                    alt="GMC logo"
+                    width={42}
+                    height={42}
+                    className="h-10 w-10 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
+                    priority
+                  />
+                  <p className="text-xs font-bold uppercase tracking-[0.45em] text-[#E0C07A]">
+                    GMC WEB
+                  </p>
+                </div>
                 <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
                   Staff Sign In
                 </h1>
