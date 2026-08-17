@@ -11,7 +11,7 @@ export async function generateCertificateNumber(prisma: PrismaClient): Promise<s
 
     const count = await prisma.certificate.count({
       where: {
-        issuedAt: {
+        dateOfIssuance: {
           gte: monthStart,
           lt: monthEnd
         }
