@@ -12,6 +12,6 @@ const compat = new FlatCompat({
 export default [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
-    ignores: ["node_modules/**", ".next/**", "public/uploads/**"],
+    ignores: ["node_modules/**", ".next/**", "public/uploads/**", "next-env.d.ts"],
   },
 ];
