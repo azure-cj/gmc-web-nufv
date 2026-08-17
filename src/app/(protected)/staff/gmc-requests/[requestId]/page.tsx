@@ -8,7 +8,7 @@ import {
   formatRequestStatusLabel,
   getFileViewerKind,
 } from "@/lib/gmc-request";
-import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file";
+import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file-url";
 import StaffRequestReviewClient from "@/components/staff/staff-request-review-client";
 
 export const dynamic = "force-dynamic";

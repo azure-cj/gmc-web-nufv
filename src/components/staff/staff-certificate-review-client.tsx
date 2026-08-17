@@ -9,7 +9,7 @@ import {
   formatPurposeLabel,
   formatRequestStatusLabel,
 } from "@/lib/gmc-request";
-import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file";
+import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file-url";
 
 type CertificateReviewAction = "EDIT" | "APPROVE" | "REJECT";
 

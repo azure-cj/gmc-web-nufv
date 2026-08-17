@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { get } from "@vercel/blob";
 
 function getBlobAuthToken(): string | null {
   return process.env.BLOB_READ_WRITE_TOKEN ?? null;
@@ -26,25 +27,24 @@ export async function fetchPrivateStorageFile(fileUrl: string): Promise<{
     };
   }
 
-  const token = getBlobAuthToken();
-  const response = await fetch(fileUrl, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  const token = getBlobAuthToken() ?? undefined;
+  const response = await get(fileUrl, {
+    access: "private",
+    token,
   });
 
-  if (!response.ok) {
-    throw new Error(`Unable to fetch private file (${response.status}).`);
+  if (!response) {
+    throw new Error("Unable to fetch private file.");
   }
 
-  const arrayBuffer = await response.arrayBuffer();
+  const arrayBuffer = await new Response(response.stream).arrayBuffer();
   const contentType =
-    response.headers.get("content-type") ?? "application/octet-stream";
-  const disposition = response.headers.get("content-disposition") ?? "";
-  const filenameMatch = disposition.match(/filename="?([^"]+)"?/i);
+    response.blob.contentType ?? "application/octet-stream";
 
   return {
     buffer: Buffer.from(arrayBuffer),
     contentType,
-    filename: filenameMatch?.[1] ?? path.basename(new URL(fileUrl).pathname),
+    filename: path.basename(new URL(fileUrl).pathname),
   };
 }
 

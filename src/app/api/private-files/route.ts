@@ -1,31 +1,58 @@
+import { get } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
-import { fetchPrivateStorageFile } from "@/lib/storage/private-file";
+import { prisma } from "@/lib/prisma";
+import { loadValidatedStaffSessionFromRequest } from "@/lib/staff-session";
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const fileUrl = request.nextUrl.searchParams.get("url");
+  const session = await loadValidatedStaffSessionFromRequest(prisma, request);
 
-  if (!fileUrl) {
+  if (!session) {
+    return NextResponse.json(
+      { formError: "Your staff session has expired. Please sign in again." },
+      { status: 401 },
+    );
+  }
+
+  const fileReference =
+    request.nextUrl.searchParams.get("pathname") ??
+    request.nextUrl.searchParams.get("url");
+
+  if (!fileReference) {
     return NextResponse.json({ formError: "Missing file URL." }, { status: 400 });
   }
 
-  try {
-    const file = await fetchPrivateStorageFile(fileUrl);
-    return new NextResponse(new Uint8Array(file.buffer), {
+  const result = await get(fileReference, {
+    access: "private",
+    token: process.env.BLOB_READ_WRITE_TOKEN ?? undefined,
+    ifNoneMatch: request.headers.get("if-none-match") ?? undefined,
+  });
+
+  if (!result) {
+    return NextResponse.json({ formError: "File not found." }, { status: 404 });
+  }
+
+  if (result.statusCode === 304) {
+    return new NextResponse(null, {
+      status: 304,
       headers: {
-        "Content-Type": file.contentType,
-        "Content-Disposition": `inline; filename="${file.filename}"`,
-        "Cache-Control": "private, max-age=0, must-revalidate",
+        ETag: result.blob.etag,
+        "Cache-Control": "private, no-cache",
       },
     });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        formError:
-          error instanceof Error ? error.message : "Unable to load the file.",
-      },
-      { status: 502 },
-    );
   }
+
+  const contentType = result.blob.contentType ?? "application/octet-stream";
+  const filename = fileReference.split("/").pop() ?? "file.bin";
+
+  return new NextResponse(result.stream, {
+    headers: {
+      "Content-Type": contentType,
+      "Content-Disposition": `inline; filename="${filename}"`,
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "private, no-cache",
+      ETag: result.blob.etag,
+    },
+  });
 }
