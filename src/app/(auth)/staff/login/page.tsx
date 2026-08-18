@@ -45,9 +45,9 @@ export default async function StaffLoginPage({
                   <Image
                     src="/images/brand/gmclogo.png"
                     alt="GMC logo"
-                    width={42}
-                    height={42}
-                    className="h-10 w-10 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
+                    width={80}
+                    height={80}
+                    className="h-20 w-20 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
                     priority
                   />
                   <p className="text-xs font-bold uppercase tracking-[0.45em] text-[#E0C07A]">

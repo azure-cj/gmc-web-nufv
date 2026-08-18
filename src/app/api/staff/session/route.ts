@@ -98,8 +98,12 @@ export async function POST(request: Request) {
     });
 
     const response = NextResponse.redirect(new URL(safeReturnTo, request.url), 303);
+    const destination = staffUser.mustChangePassword
+      ? new URL("/staff/change-password", request.url)
+      : new URL(safeReturnTo, request.url);
 
     setStaffSessionCookie(response, sessionToken);
+    response.headers.set("Location", destination.toString());
 
     return response;
   } catch (error) {
