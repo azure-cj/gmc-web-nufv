@@ -43,7 +43,7 @@ export interface CertificateReviewDraft {
     dateSubmitted: string;
     dateReleased: string | null;
     reviewedByName: string | null;
-    releaseDeliveryStatus: "EMAIL_SENT" | "EMAIL_NOT_SENT" | null;
+    releaseDeliveryStatus: "PDF_AVAILABLE" | null;
   };
   certificate: {
     id: string;
@@ -161,6 +161,7 @@ export function buildCertificateReviewDraft(
   const certificateNumber = certificate?.certificateNumber ?? "";
   const dateOfIssuance = certificate?.dateOfIssuance ?? request.dateSubmitted;
   const latestReleaseAudit = request.auditLogs.find((entry) =>
+    entry.action === "CERTIFICATE_APPROVED_AND_RELEASED_PDF_DOWNLOAD" ||
     entry.action === "CERTIFICATE_RELEASED_AND_EMAILED" ||
     entry.action === "CERTIFICATE_RELEASED_EMAIL_NOT_SENT",
   );
@@ -178,11 +179,7 @@ export function buildCertificateReviewDraft(
       dateSubmitted: request.dateSubmitted.toISOString(),
       dateReleased: request.dateReleased ? request.dateReleased.toISOString() : null,
       reviewedByName: request.reviewedBy?.name ?? null,
-      releaseDeliveryStatus: latestReleaseAudit
-        ? latestReleaseAudit.action === "CERTIFICATE_RELEASED_AND_EMAILED"
-          ? "EMAIL_SENT"
-          : "EMAIL_NOT_SENT"
-        : null,
+      releaseDeliveryStatus: latestReleaseAudit ? "PDF_AVAILABLE" : null,
     },
     certificate: certificate
       ? {

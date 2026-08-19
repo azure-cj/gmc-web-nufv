@@ -35,6 +35,10 @@ export interface StaffDashboardRequestRow {
   purposeOfRequest: string;
   status: GmcRequestStatus;
   dateSubmitted: Date;
+  certificate: {
+    certificateNumber: string;
+    generatedPdfUrl: string | null;
+  } | null;
 }
 
 export interface StaffDashboardData {
@@ -178,6 +182,12 @@ export async function getStaffDashboardData(
       purposeOfRequest: true,
       status: true,
       dateSubmitted: true,
+      certificate: {
+        select: {
+          certificateNumber: true,
+          generatedPdfUrl: true,
+        },
+      },
     },
   });
 

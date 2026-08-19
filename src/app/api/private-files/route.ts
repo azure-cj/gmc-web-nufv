@@ -44,15 +44,32 @@ export async function GET(request: NextRequest) {
   }
 
   const contentType = result.blob.contentType ?? "application/octet-stream";
-  const filename = fileReference.split("/").pop() ?? "file.bin";
+  const requestedFilename = request.nextUrl.searchParams.get("downloadName");
+  const filename = sanitizeDownloadFilename(
+    requestedFilename || fileReference.split("/").pop() || "file.bin",
+  );
 
   return new NextResponse(result.stream, {
     headers: {
       "Content-Type": contentType,
-      "Content-Disposition": `inline; filename="${filename}"`,
+      "Content-Disposition": `${requestedFilename ? "attachment" : "inline"}; filename="${filename}"`,
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "private, no-cache",
       ETag: result.blob.etag,
     },
   });
+}
+
+function sanitizeDownloadFilename(value: string): string {
+  const extension = value.toLowerCase().endsWith(".pdf") ? ".pdf" : "";
+  const basename = value
+    .replace(/\.[^.]+$/, "")
+    .normalize("NFKC")
+    .replace(/[^\p{L}\p{N}._' -]+/gu, "")
+    .trim()
+    .replace(/[ .]+/g, "_")
+    .replace(/^\.+|\.+$/g, "")
+    .slice(0, 180);
+
+  return `${basename || "certificate"}${extension}`;
 }

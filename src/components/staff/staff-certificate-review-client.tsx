@@ -39,7 +39,7 @@ interface CertificateReviewDraft {
     dateSubmitted: string;
     dateReleased: string | null;
     reviewedByName: string | null;
-    releaseDeliveryStatus: "EMAIL_SENT" | "EMAIL_NOT_SENT" | null;
+    releaseDeliveryStatus: "PDF_AVAILABLE" | null;
   };
   certificate: {
     id: string;
@@ -270,17 +270,18 @@ export default function StaffCertificateReviewClient({
   const certificate = draft.certificate;
   const isReleased = draft.request.status === "RELEASED";
   const isDeliveryFailed = draft.request.status === "DELIVERY_FAILED";
+  const certificateDownloadName = certificate
+    ? `${certificate.studentFullName}_${certificate.certificateNumber}.pdf`
+    : "";
   const certificateDownloadUrl = certificate
-    ? getPrivateStorageDownloadUrl(certificate.generatedPdfUrl ?? "")
+    ? getPrivateStorageDownloadUrl(certificate.generatedPdfUrl ?? "", certificateDownloadName)
     : "";
   const releaseDeliveryLabel =
-    draft.request.releaseDeliveryStatus === "EMAIL_SENT"
-      ? "Released - Email Sent"
-      : draft.request.releaseDeliveryStatus === "EMAIL_NOT_SENT"
-        ? "Released — Email Not Sent (download and deliver manually)"
-        : isReleased
-          ? "Released"
-          : null;
+    draft.request.releaseDeliveryStatus === "PDF_AVAILABLE"
+      ? "Released — PDF Available for Download"
+      : isReleased
+        ? "Released"
+        : null;
 
   const syncDraft = (nextDraft: CertificateReviewDraft) => {
     setDraft(nextDraft);
@@ -460,12 +461,11 @@ export default function StaffCertificateReviewClient({
             ) : null}
             {!certificate?.generatedPdfUrl ? (
               <p className="mt-4 text-sm text-slate-500">
-                Phase 5 will generate the PDF and email delivery. This screen is reviewing the
-                certificate HTML preview only.
+                The final PDF will be generated when the certificate is approved for release.
               </p>
             ) : (
               <p className="mt-4 text-sm text-slate-500">
-                The stored preview is ready. Phase 5 will generate the final PDF delivery asset.
+                The generated PDF is ready for staff download.
               </p>
             )}
           </Card>
@@ -656,7 +656,7 @@ export default function StaffCertificateReviewClient({
                 <div
                   className={[
                     "rounded-2xl border px-4 py-3 text-sm font-semibold",
-                    draft.request.releaseDeliveryStatus === "EMAIL_SENT"
+                    draft.request.releaseDeliveryStatus === "PDF_AVAILABLE"
                       ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                       : "border-amber-200 bg-amber-50 text-amber-950",
                   ].join(" ")}
@@ -671,9 +671,6 @@ export default function StaffCertificateReviewClient({
                 <p className="mt-2 break-all text-sm font-medium text-slate-900">
                   {draft.request.studentEmail}
                 </p>
-              </div>
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-                PDF will be sent to this address upon approval.
               </div>
             </div>
           </Card>
@@ -733,7 +730,7 @@ export default function StaffCertificateReviewClient({
               </label>
             )}
             <p className="mt-3 text-sm text-slate-500">
-              These notes stay internal and are not included in the student email.
+              These notes stay internal and are not included in the certificate PDF.
             </p>
           </Card>
 
@@ -742,8 +739,8 @@ export default function StaffCertificateReviewClient({
               <div className="space-y-5">
                 {isDeliveryFailed ? (
                   <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-                    Delivery failed on the previous attempt. Review the reason in the audit trail
-                    and retry after confirming the certificate details.
+                    PDF generation failed on the previous attempt. Review the reason in the audit
+                    trail and retry after confirming the certificate details.
                   </div>
                 ) : null}
 
@@ -766,7 +763,7 @@ export default function StaffCertificateReviewClient({
                     onClick={handleApprove}
                     className="inline-flex rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {isDeliveryFailed ? "Retry Delivery" : "Approve &amp; Send to Student"}
+                    {isDeliveryFailed ? "Retry PDF Generation" : "Approve & Generate Certificate"}
                   </button>
                   <button
                     type="button"
@@ -842,11 +839,21 @@ export default function StaffCertificateReviewClient({
                   {releaseDeliveryLabel ?? "Released"}
                 </p>
                 <p className="mt-2 text-sm leading-6">
-                  This certificate has been approved for release. The PDF is available for
-                  download, and email delivery is recorded separately for staff visibility.
+                  This certificate has been approved and released. Download the generated PDF
+                  and provide it to the student through the office’s approved process.
                 </p>
               </div>
               <div className="mt-5 flex flex-wrap gap-3">
+                {certificate?.generatedPdfUrl ? (
+                  <a
+                    href={certificateDownloadUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex rounded-2xl bg-amber-400 px-5 py-3 text-sm font-semibold text-slate-950 shadow-sm transition hover:bg-amber-300"
+                  >
+                    Download Certificate PDF
+                  </a>
+                ) : null}
                 <Link
                   href={returnTo || "/staff/gmc-requests"}
                   className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"

@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
@@ -99,8 +100,41 @@ async function runBrowserPrintToPdf(
   });
 }
 
+async function runServerlessChromiumPrintToPdf(
+  html: string,
+): Promise<Buffer> {
+  const [{ default: chromium }, { default: puppeteer }] = await Promise.all([
+    import("@sparticuz/chromium"),
+    import("puppeteer-core"),
+  ]);
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    executablePath: await chromium.executablePath(),
+    headless: true,
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "load" });
+    const pdf = await page.pdf({
+      format: "Letter",
+      printBackground: true,
+      preferCSSPageSize: true,
+    });
+    return Buffer.from(pdf);
+  } finally {
+    await browser.close();
+  }
+}
+
 export async function renderHtmlToPdfBuffer(html: string): Promise<Buffer> {
-  const workDir = path.join(process.cwd(), "tmp", "pdfs", randomUUID());
+  if (process.env.VERCEL === "1") {
+    // Vercel's function bundle is read-only. Render from memory and let Blob receive the bytes.
+    return runServerlessChromiumPrintToPdf(html);
+  }
+
+  // Vercel's deployed bundle is read-only; only the OS temp directory is writable there.
+  const workDir = path.join(os.tmpdir(), "gmc-pdfs", randomUUID());
   const htmlPath = path.join(workDir, "document.html");
   const pdfPath = path.join(workDir, "document.pdf");
 

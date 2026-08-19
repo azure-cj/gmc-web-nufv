@@ -46,6 +46,7 @@ interface LoadedArchiveRequest {
   certificate: {
     certificateNumber: string;
     dateOfIssuance: Date;
+    generatedPdfUrl: string | null;
   } | null;
 }
 
@@ -60,6 +61,7 @@ interface ArchiveRequestRow {
   officialReceiptNumber: string | null;
   paymentVerificationStatus: string;
   certificateNumber: string | null;
+  generatedPdfUrl: string | null;
   status: GmcRequestStatus;
   dateSubmitted: string;
   dateReleased: string | null;
@@ -297,6 +299,7 @@ function buildArchiveRow(request: LoadedArchiveRequest): ArchiveRequestRow {
       request.paymentVerificationStatus,
     ),
     certificateNumber: request.certificate?.certificateNumber ?? null,
+    generatedPdfUrl: request.certificate?.generatedPdfUrl ?? null,
     status: request.status,
     dateSubmitted: formatBusinessDateTime(request.dateSubmitted),
     dateReleased: request.dateReleased ? formatBusinessDateTime(request.dateReleased) : null,
@@ -416,6 +419,7 @@ export async function getRecordsArchivePageData(
         select: {
           certificateNumber: true,
           dateOfIssuance: true,
+          generatedPdfUrl: true,
         },
       },
     },

@@ -10,6 +10,7 @@ import {
   type RecordsArchiveReportFilters,
 } from "@/lib/records-archive-query";
 import { formatRequestStatusLabel } from "@/lib/gmc-request";
+import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file-url";
 import type {
   RecordsArchivePageData,
   RecordsArchiveReportData,
@@ -346,6 +347,19 @@ export default function StaffRecordsArchiveWorkspace({
                       >
                         Open Record
                       </Link>
+                      {request.status === "RELEASED" && request.generatedPdfUrl ? (
+                        <a
+                          href={getPrivateStorageDownloadUrl(
+                            request.generatedPdfUrl,
+                            `${request.studentFullName}_${request.certificateNumber}.pdf`,
+                          )}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 inline-flex rounded-full bg-amber-400 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-amber-300"
+                        >
+                          Download PDF
+                        </a>
+                      ) : null}
                     </td>
                   </tr>
                 ))

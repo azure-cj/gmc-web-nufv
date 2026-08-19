@@ -9,6 +9,7 @@ import {
   formatPurposeLabel,
   formatRequestStatusLabel,
 } from "@/lib/gmc-request";
+import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file-url";
 import {
   STAFF_REQUEST_STATUSES,
   type StaffDashboardData,
@@ -384,7 +385,7 @@ export default function StaffRequestsWorkspace({
                             className="inline-flex rounded-full border border-[#3B8FF3]/40 bg-[#3B8FF3]/15 px-3 py-1.5 text-xs font-semibold text-[#1E589B] transition hover:bg-[#3B8FF3]/25"
                           >
                             {request.status === "DELIVERY_FAILED"
-                              ? "Retry Delivery"
+                              ? "Retry PDF Generation"
                               : "Review Certificate"}
                           </Link>
                         ) : request.status === "RETURNED" ? (
@@ -412,12 +413,27 @@ export default function StaffRequestsWorkspace({
                             View Reason
                           </Link>
                         ) : (
-                          <Link
-                            href={requestHref}
-                            className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
-                          >
-                            View
-                          </Link>
+                          <div className="flex flex-wrap gap-2">
+                            <Link
+                              href={requestHref}
+                              className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                            >
+                              View
+                            </Link>
+                            {request.status === "RELEASED" && request.certificate?.generatedPdfUrl ? (
+                              <a
+                                href={getPrivateStorageDownloadUrl(
+                                  request.certificate.generatedPdfUrl,
+                                  `${fullName(request.studentFirstName, request.studentMiddleInitial, request.studentLastName)}_${request.certificate.certificateNumber}.pdf`,
+                                )}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex rounded-full bg-amber-400 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-amber-300"
+                              >
+                                Download PDF
+                              </a>
+                            ) : null}
+                          </div>
                         )}
                       </td>
                     </tr>
