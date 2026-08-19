@@ -12,6 +12,7 @@ import { generateCertificatePdfForRequest } from "@/server/services/certificate-
 import { updateGmcRequestStatusInTransaction } from "@/server/services/gmc-request-service";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 type CertificateReviewAction = "EDIT" | "GENERATE" | "REJECT";
 

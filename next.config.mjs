@@ -7,6 +7,13 @@ const repoRoot = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: repoRoot,
+  // Externalization keeps Chromium's relative asset lookup intact; explicit tracing
+  // is also required so Vercel includes the package's compressed binaries in the function.
+  outputFileTracingIncludes: {
+    "/api/staff/gmc-requests/[requestId]/certificate-review": [
+      "./node_modules/@sparticuz/chromium/bin/**",
+    ],
+  },
   serverExternalPackages: [
     '@vercel/blob',
     '@vercel/oidc',
