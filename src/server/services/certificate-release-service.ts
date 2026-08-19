@@ -110,26 +110,16 @@ export async function generateCertificatePdfForRequest(
         },
       });
 
-      if (currentRequest.status === "DELIVERY_FAILED") {
-        await updateGmcRequestStatusInTransaction(tx, {
-          gmcRequestId: currentRequest.id,
-          status: "GENERATED",
-          reviewedById: input.staffUserId,
-          reviewNotes: input.reviewNotes?.trim() || currentRequest.reviewNotes || null,
-          actorId: input.staffUserId,
-          auditAction: "REQUEST_GENERATED",
-          auditNotes: `Certificate ${certificate.certificateNumber} PDF regenerated and ready for printing.`,
-        });
-      } else {
-        await tx.auditLogEntry.create({
-          data: {
-            gmcRequestId: currentRequest.id,
-            actorId: input.staffUserId,
-            action: "CERTIFICATE_PDF_GENERATED",
-            notes: `Certificate ${certificate.certificateNumber} PDF generated and ready for printing.`,
-          },
-        });
-      }
+      await updateGmcRequestStatusInTransaction(tx, {
+        gmcRequestId: currentRequest.id,
+        status: "RELEASED",
+        reviewedById: input.staffUserId,
+        reviewNotes: input.reviewNotes?.trim() || currentRequest.reviewNotes || null,
+        dateReleased: new Date(),
+        actorId: input.staffUserId,
+        auditAction: "CERTIFICATE_APPROVED_AND_RELEASED_PDF_DOWNLOAD",
+        auditNotes: `Certificate ${certificate.certificateNumber} generated and released for download; email not enabled.`,
+      });
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to release the certificate.";
@@ -162,45 +152,6 @@ export async function generateCertificatePdfForRequest(
       draft: buildCertificateReviewDraft(refreshedFailure),
     };
   }
-
-  const refreshed = await loadGeneratedCertificateReviewRequest(db, input.requestId);
-
-  if (!refreshed) {
-    throw new Error("Unable to reload the certificate after release.");
-  }
-
-  return {
-    draft: buildCertificateReviewDraft(refreshed),
-  };
-}
-
-export async function confirmCertificatePrintedAndRelease(
-  db: PrismaClient,
-  input: ReleaseGeneratedCertificateInput,
-): Promise<ReleaseGeneratedCertificateResult> {
-  const currentRequest = await loadCertificateReleaseRequest(db, input.requestId);
-  const certificate = currentRequest.certificate;
-
-  if (!certificate) {
-    throw new Error("This request does not have a certificate.");
-  }
-
-  if (!certificate.generatedPdfUrl) {
-    throw new Error("The certificate PDF must be generated before it can be released.");
-  }
-
-  await db.$transaction((tx) =>
-    updateGmcRequestStatusInTransaction(tx, {
-      gmcRequestId: currentRequest.id,
-      status: "RELEASED",
-      reviewedById: input.staffUserId,
-      reviewNotes: input.reviewNotes?.trim() || currentRequest.reviewNotes || null,
-      dateReleased: new Date(),
-      actorId: input.staffUserId,
-      auditAction: "CERTIFICATE_PRINTED_AND_RELEASED",
-      auditNotes: `Certificate ${certificate.certificateNumber} printed and released. PDF remains available for download; email not enabled.`,
-    }),
-  );
 
   const refreshed = await loadGeneratedCertificateReviewRequest(db, input.requestId);
 

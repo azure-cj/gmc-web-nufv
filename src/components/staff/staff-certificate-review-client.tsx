@@ -11,7 +11,7 @@ import {
 } from "@/lib/gmc-request";
 import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file-url";
 
-type CertificateReviewAction = "EDIT" | "GENERATE" | "RELEASE" | "REJECT";
+type CertificateReviewAction = "EDIT" | "GENERATE" | "REJECT";
 
 interface CertificateReviewDraft {
   request: {
@@ -164,7 +164,7 @@ function Stepper({
 }: {
   activeStep: number;
 }) {
-  const steps = ["Submitted", "Verified", "Generated", "Print & Release"];
+  const steps = ["Submitted", "Verified", "Generated", "Released"];
 
   return (
     <div className="grid gap-3 md:grid-cols-4">
@@ -393,17 +393,6 @@ export default function StaffCertificateReviewClient({
     }
 
     await submitAction("GENERATE", {
-      confirmed: true,
-    });
-  };
-
-  const handleRelease = async () => {
-    if (!confirmationChecked) {
-      setFormError("Confirm that the certificate was printed before releasing it.");
-      return;
-    }
-
-    await submitAction("RELEASE", {
       confirmed: true,
     });
   };
@@ -772,8 +761,8 @@ export default function StaffCertificateReviewClient({
 
                 {certificate?.generatedPdfUrl ? (
                   <div className="rounded-3xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-blue-950">
-                    The PDF has been generated and downloaded. Print it before confirming the
-                    final release below.
+                    The PDF has been generated, downloaded, and released. Download it again
+                    below whenever a replacement copy is needed.
                   </div>
                 ) : null}
 
@@ -785,9 +774,7 @@ export default function StaffCertificateReviewClient({
                     className="mt-1 h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
                   />
                   <span className="text-sm text-slate-700">
-                    {certificate?.generatedPdfUrl
-                      ? "I confirm that I printed the certificate and it is ready for release."
-                      : "I confirm that the above certificate is accurate and ready for PDF generation."}
+                    "I confirm that the above certificate is accurate and ready to generate and release."
                   </span>
                 </label>
 
@@ -795,14 +782,10 @@ export default function StaffCertificateReviewClient({
                   <button
                     type="button"
                     disabled={!confirmationChecked || isSubmitting}
-                    onClick={certificate?.generatedPdfUrl ? handleRelease : handleGenerate}
+                    onClick={handleGenerate}
                     className="inline-flex rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {certificate?.generatedPdfUrl
-                      ? "Confirm Printed & Release"
-                      : isDeliveryFailed
-                        ? "Retry PDF Generation"
-                        : "Approve & Generate Certificate"}
+                    {isDeliveryFailed ? "Retry PDF Generation and Release" : "Approve & Generate Certificate"}
                   </button>
                   <button
                     type="button"

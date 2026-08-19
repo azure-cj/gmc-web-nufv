@@ -8,20 +8,16 @@ import {
   buildCertificateReviewDraft,
   loadGeneratedCertificateReviewRequest,
 } from "@/server/services/certificate-review-service";
-import {
-  confirmCertificatePrintedAndRelease,
-  generateCertificatePdfForRequest,
-} from "@/server/services/certificate-release-service";
+import { generateCertificatePdfForRequest } from "@/server/services/certificate-release-service";
 import { updateGmcRequestStatusInTransaction } from "@/server/services/gmc-request-service";
 
 export const runtime = "nodejs";
 
-type CertificateReviewAction = "EDIT" | "GENERATE" | "RELEASE" | "REJECT";
+type CertificateReviewAction = "EDIT" | "GENERATE" | "REJECT";
 
 const CERTIFICATE_REVIEW_ACTIONS = new Set<CertificateReviewAction>([
   "EDIT",
   "GENERATE",
-  "RELEASE",
   "REJECT",
 ]);
 
@@ -157,11 +153,9 @@ export async function POST(
     return validationError(fieldErrors);
   }
 
-  if (action === "GENERATE" || action === "RELEASE") {
+  if (action === "GENERATE") {
     if (body.confirmed !== true) {
-      fieldErrors.confirmation = action === "RELEASE"
-        ? "Confirm that the certificate was printed before releasing it."
-        : "Confirm the certificate before generating the PDF.";
+      fieldErrors.confirmation = "Confirm the certificate before generating and releasing the PDF.";
     }
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -169,17 +163,11 @@ export async function POST(
     }
 
     try {
-      const result = action === "GENERATE"
-        ? await generateCertificatePdfForRequest(prisma, {
-            requestId,
-            staffUserId: session.staffUser.id,
-            reviewNotes,
-          })
-        : await confirmCertificatePrintedAndRelease(prisma, {
-            requestId,
-            staffUserId: session.staffUser.id,
-            reviewNotes,
-          });
+      const result = await generateCertificatePdfForRequest(prisma, {
+        requestId,
+        staffUserId: session.staffUser.id,
+        reviewNotes,
+      });
 
       return NextResponse.json({ draft: result.draft });
     } catch (error) {
