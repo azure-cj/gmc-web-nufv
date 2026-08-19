@@ -5,6 +5,8 @@ import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
+const bundledChromiumBinPath = path.join(process.cwd(), ".vercel-chromium-bin");
+
 const DEFAULT_BROWSER_CANDIDATES = [
   process.env.GMC_CHROME_PATH,
   process.env.CHROME_PATH,
@@ -109,7 +111,11 @@ async function runServerlessChromiumPrintToPdf(
   ]);
   const browser = await puppeteer.launch({
     args: chromium.args,
-    executablePath: await chromium.executablePath(),
+    executablePath: await chromium.executablePath(
+      (await fileExists(bundledChromiumBinPath))
+        ? bundledChromiumBinPath
+        : undefined,
+    ),
     headless: true,
   });
 

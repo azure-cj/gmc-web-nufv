@@ -17,3 +17,4 @@ public/uploads/*
 !public/uploads/.gitkeep
 prisma/dev.db
 tmp/
+.vercel-chromium-bin/

@@ -11,7 +11,7 @@ const nextConfig = {
   // is also required so Vercel includes the package's compressed binaries in the function.
   outputFileTracingIncludes: {
     "/api/staff/gmc-requests/[requestId]/certificate-review": [
-      "./node_modules/@sparticuz/chromium/bin/**",
+      "./.vercel-chromium-bin/**",
     ],
   },
   serverExternalPackages: [

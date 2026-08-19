@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "pnpm lint && pnpm typecheck",
-    "postinstall": "prisma generate && node scripts/fix-prisma-client-wrappers.mjs",
+    "postinstall": "prisma generate && node scripts/fix-prisma-client-wrappers.mjs && node scripts/prepare-chromium-assets.mjs",
     "prisma:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
