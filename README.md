@@ -1,64 +1,53 @@
 # GMC Web System
 
-Project scaffold for the Good Moral Certificate web system, including the public request intake flow.
+The GMC Web System is an online Good Moral Certificate request portal for the NU Fairview Discipline Office.
 
-## Stack
+It provides students with a convenient way to submit certificate requests and gives Discipline Office staff a centralized workspace for reviewing, approving, releasing, and archiving certificates.
 
-- Next.js
-- TypeScript
-- Tailwind CSS
-- PostgreSQL
-- Prisma
+## For Students
 
-## What is included in this phase
+Students can:
 
-- Project scaffold
-- Prisma data model and initial migration
-- Seed script with sample staff users, students, GMC requests, audit logs, and certificates
-- Storage, email, and numbering abstractions for later phases
-- A minimal health check route at `/api/health`
-- Public GMC request form at `/`
-- Submission API at `/api/gmc-requests`
+- Submit a Good Moral Certificate request online
+- Provide their student information, academic details, purpose, and email address
+- Upload proof of payment
+- Receive a request reference number after submission
+- Track the progress of their request using the reference number and email address
 
-## Local setup
+## For Discipline Office Staff
 
-1. Install Node.js 24 or newer.
-2. Create a PostgreSQL database and set `DATABASE_URL` in `.env`.
-3. Copy `.env.example` to `.env` and adjust the connection string.
-4. Optionally change `GMC_REQUEST_FEE_PHP` if the submission fee changes.
-5. Install dependencies:
+Authorized staff can:
 
-```bash
-npm install
-```
+- Sign in through the staff portal
+- Review incoming certificate requests
+- Verify payment details and official receipt numbers
+- Check submitted student information
+- Approve, return, or reject requests with notes and reasons
+- Review generated certificate previews before release
+- Correct certificate details when necessary
+- Generate and release certificate PDFs
+- Download released certificate PDFs for manual delivery
+- Search and filter requests and archived records
+- View certificate issuance reports
+- Review the activity and audit history of requests and staff actions
 
-6. Generate the Prisma client:
+## Certificate Process
 
-```bash
-npm run prisma:generate
-```
+1. A student submits a request and uploads proof of payment.
+2. Discipline Office staff review the request and verify the payment.
+3. An approved request receives a certificate number and certificate preview.
+4. Staff perform a final review of the certificate details.
+5. The certificate is released as a downloadable PDF for staff delivery.
 
-7. Apply the initial migration:
+## Request Statuses
 
-```bash
-npm run db:migrate
-```
+- Pending
+- Approved
+- Returned
+- Rejected
+- Generated
+- Released
 
-8. Seed the database:
+## Project
 
-```bash
-npm run db:seed
-```
-
-9. Start the development server:
-
-```bash
-npm run dev
-```
-
-## Notes
-
-- Uploaded payment proofs and generated PDFs are written through the storage interface to `public/uploads` for now.
-- Request reference numbers use `GMC-YYYY-MM-XXXXXX`.
-- Certificate numbers use `YYYY-MM-XXXXXX` and are allocated with a database-safe monthly counter.
-- Phase 1 now covers the student request form only. Staff screens begin in Phase 2.
+This project is maintained for the NU Fairview Discipline Office to make Good Moral Certificate processing more organized, traceable, and accessible for students and staff.
