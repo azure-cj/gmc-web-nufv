@@ -774,7 +774,7 @@ export default function StaffCertificateReviewClient({
                     className="mt-1 h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
                   />
                   <span className="text-sm text-slate-700">
-                    "I confirm that the above certificate is accurate and ready to generate and release."
+                    &quot;I confirm that the above certificate is accurate and ready to generate and release.&quot;
                   </span>
                 </label>
 
