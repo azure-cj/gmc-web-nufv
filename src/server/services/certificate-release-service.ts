@@ -52,11 +52,11 @@ async function generateAndStoreCertificatePdf(
   };
 }
 
-export async function releaseGeneratedCertificate(
+async function loadCertificateReleaseRequest(
   db: PrismaClient,
-  input: ReleaseGeneratedCertificateInput,
-): Promise<ReleaseGeneratedCertificateResult> {
-  const currentRequest = await loadGeneratedCertificateReviewRequest(db, input.requestId);
+  requestId: string,
+) {
+  const currentRequest = await loadGeneratedCertificateReviewRequest(db, requestId);
 
   if (!currentRequest) {
     throw new Error("Certificate review request not found.");
@@ -73,49 +73,68 @@ export async function releaseGeneratedCertificate(
     throw new Error("Only generated certificates can be released.");
   }
 
-  const normalizedReviewNotes = input.reviewNotes?.trim() || currentRequest.reviewNotes || null;
+  return currentRequest;
+}
+
+export async function generateCertificatePdfForRequest(
+  db: PrismaClient,
+  input: ReleaseGeneratedCertificateInput,
+): Promise<ReleaseGeneratedCertificateResult> {
+  const currentRequest = await loadCertificateReleaseRequest(db, input.requestId);
   const certificate = currentRequest.certificate;
+
+  if (!certificate) {
+    throw new Error("This request does not have a certificate.");
+  }
+
   try {
     const generatedPdf = await generateAndStoreCertificatePdf(currentRequest);
 
-    await db.certificate.update({
-      where: { id: certificate.id },
-      data: {
-        generatedPdfUrl: generatedPdf.generatedPdfUrl,
-        previewHtml: buildCertificatePreviewHtmlFromEditableValues(
-          certificate.certificateNumber,
-          buildCertificateReviewEditableValues(currentRequest),
-          certificate.dateOfIssuance,
-          {
-            studentTitlePrefix: currentRequest.studentTitlePrefix ?? null,
-            term: currentRequest.term ?? null,
-            purposeOfRequest: currentRequest.purposeOfRequest,
-            officialReceiptNumber:
-              currentRequest.officialReceiptNumber ?? null,
+    await db.$transaction(async (tx) => {
+      await tx.certificate.update({
+        where: { id: certificate.id },
+        data: {
+          generatedPdfUrl: generatedPdf.generatedPdfUrl,
+          previewHtml: buildCertificatePreviewHtmlFromEditableValues(
+            certificate.certificateNumber,
+            buildCertificateReviewEditableValues(currentRequest),
+            certificate.dateOfIssuance,
+            {
+              studentTitlePrefix: currentRequest.studentTitlePrefix ?? null,
+              term: currentRequest.term ?? null,
+              purposeOfRequest: currentRequest.purposeOfRequest,
+              officialReceiptNumber:
+                currentRequest.officialReceiptNumber ?? null,
+            },
+          ),
+        },
+      });
+
+      if (currentRequest.status === "DELIVERY_FAILED") {
+        await updateGmcRequestStatusInTransaction(tx, {
+          gmcRequestId: currentRequest.id,
+          status: "GENERATED",
+          reviewedById: input.staffUserId,
+          reviewNotes: input.reviewNotes?.trim() || currentRequest.reviewNotes || null,
+          actorId: input.staffUserId,
+          auditAction: "REQUEST_GENERATED",
+          auditNotes: `Certificate ${certificate.certificateNumber} PDF regenerated and ready for printing.`,
+        });
+      } else {
+        await tx.auditLogEntry.create({
+          data: {
+            gmcRequestId: currentRequest.id,
+            actorId: input.staffUserId,
+            action: "CERTIFICATE_PDF_GENERATED",
+            notes: `Certificate ${certificate.certificateNumber} PDF generated and ready for printing.`,
           },
-        ),
-      },
+        });
+      }
     });
-
-    // TODO: Re-enable EmailService delivery here after production email configuration is complete.
-    // The active release path intentionally performs no email or attachment preparation.
-
-    await db.$transaction((tx) =>
-      updateGmcRequestStatusInTransaction(tx, {
-        gmcRequestId: currentRequest.id,
-        status: "RELEASED",
-        reviewedById: input.staffUserId,
-        reviewNotes: normalizedReviewNotes,
-        dateReleased: new Date(),
-        actorId: input.staffUserId,
-        auditAction: "CERTIFICATE_APPROVED_AND_RELEASED_PDF_DOWNLOAD",
-        auditNotes: `Certificate ${certificate.certificateNumber} approved and released. PDF available for download; email not enabled.`,
-      }),
-    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to release the certificate.";
     const failureReviewNotes = [
-      normalizedReviewNotes,
+      input.reviewNotes?.trim() || currentRequest.reviewNotes || null,
       `PDF generation failed: ${message}`,
     ]
       .filter(Boolean)
@@ -143,6 +162,45 @@ export async function releaseGeneratedCertificate(
       draft: buildCertificateReviewDraft(refreshedFailure),
     };
   }
+
+  const refreshed = await loadGeneratedCertificateReviewRequest(db, input.requestId);
+
+  if (!refreshed) {
+    throw new Error("Unable to reload the certificate after release.");
+  }
+
+  return {
+    draft: buildCertificateReviewDraft(refreshed),
+  };
+}
+
+export async function confirmCertificatePrintedAndRelease(
+  db: PrismaClient,
+  input: ReleaseGeneratedCertificateInput,
+): Promise<ReleaseGeneratedCertificateResult> {
+  const currentRequest = await loadCertificateReleaseRequest(db, input.requestId);
+  const certificate = currentRequest.certificate;
+
+  if (!certificate) {
+    throw new Error("This request does not have a certificate.");
+  }
+
+  if (!certificate.generatedPdfUrl) {
+    throw new Error("The certificate PDF must be generated before it can be released.");
+  }
+
+  await db.$transaction((tx) =>
+    updateGmcRequestStatusInTransaction(tx, {
+      gmcRequestId: currentRequest.id,
+      status: "RELEASED",
+      reviewedById: input.staffUserId,
+      reviewNotes: input.reviewNotes?.trim() || currentRequest.reviewNotes || null,
+      dateReleased: new Date(),
+      actorId: input.staffUserId,
+      auditAction: "CERTIFICATE_PRINTED_AND_RELEASED",
+      auditNotes: `Certificate ${certificate.certificateNumber} printed and released. PDF remains available for download; email not enabled.`,
+    }),
+  );
 
   const refreshed = await loadGeneratedCertificateReviewRequest(db, input.requestId);
 

@@ -8,16 +8,20 @@ import {
   buildCertificateReviewDraft,
   loadGeneratedCertificateReviewRequest,
 } from "@/server/services/certificate-review-service";
-import { releaseGeneratedCertificate } from "@/server/services/certificate-release-service";
+import {
+  confirmCertificatePrintedAndRelease,
+  generateCertificatePdfForRequest,
+} from "@/server/services/certificate-release-service";
 import { updateGmcRequestStatusInTransaction } from "@/server/services/gmc-request-service";
 
 export const runtime = "nodejs";
 
-type CertificateReviewAction = "EDIT" | "APPROVE" | "REJECT";
+type CertificateReviewAction = "EDIT" | "GENERATE" | "RELEASE" | "REJECT";
 
 const CERTIFICATE_REVIEW_ACTIONS = new Set<CertificateReviewAction>([
   "EDIT",
-  "APPROVE",
+  "GENERATE",
+  "RELEASE",
   "REJECT",
 ]);
 
@@ -153,9 +157,11 @@ export async function POST(
     return validationError(fieldErrors);
   }
 
-  if (action === "APPROVE") {
+  if (action === "GENERATE" || action === "RELEASE") {
     if (body.confirmed !== true) {
-      fieldErrors.confirmation = "Confirm the certificate before approving it for release.";
+      fieldErrors.confirmation = action === "RELEASE"
+        ? "Confirm that the certificate was printed before releasing it."
+        : "Confirm the certificate before generating the PDF.";
     }
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -163,11 +169,17 @@ export async function POST(
     }
 
     try {
-      const result = await releaseGeneratedCertificate(prisma, {
-        requestId,
-        staffUserId: session.staffUser.id,
-        reviewNotes,
-      });
+      const result = action === "GENERATE"
+        ? await generateCertificatePdfForRequest(prisma, {
+            requestId,
+            staffUserId: session.staffUser.id,
+            reviewNotes,
+          })
+        : await confirmCertificatePrintedAndRelease(prisma, {
+            requestId,
+            staffUserId: session.staffUser.id,
+            reviewNotes,
+          });
 
       return NextResponse.json({ draft: result.draft });
     } catch (error) {

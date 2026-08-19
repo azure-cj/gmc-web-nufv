@@ -162,6 +162,7 @@ export function buildCertificateReviewDraft(
   const dateOfIssuance = certificate?.dateOfIssuance ?? request.dateSubmitted;
   const latestReleaseAudit = request.auditLogs.find((entry) =>
     entry.action === "CERTIFICATE_APPROVED_AND_RELEASED_PDF_DOWNLOAD" ||
+    entry.action === "CERTIFICATE_PRINTED_AND_RELEASED" ||
     entry.action === "CERTIFICATE_RELEASED_AND_EMAILED" ||
     entry.action === "CERTIFICATE_RELEASED_EMAIL_NOT_SENT",
   );
