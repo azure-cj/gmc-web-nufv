@@ -7,7 +7,13 @@ const repoRoot = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: repoRoot,
-  serverExternalPackages: ['@vercel/blob', '@vercel/oidc', 'jose'],
+  serverExternalPackages: [
+    '@vercel/blob',
+    '@vercel/oidc',
+    '@sparticuz/chromium',
+    'puppeteer-core',
+    'jose',
+  ],
 };
 
 export default nextConfig;

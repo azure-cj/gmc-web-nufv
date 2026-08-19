@@ -116,7 +116,7 @@ export async function releaseGeneratedCertificate(
     const message = error instanceof Error ? error.message : "Unable to release the certificate.";
     const failureReviewNotes = [
       normalizedReviewNotes,
-      `Delivery failed: ${message}`,
+      `PDF generation failed: ${message}`,
     ]
       .filter(Boolean)
       .join("\n\n");
