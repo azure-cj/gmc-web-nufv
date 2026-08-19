@@ -72,13 +72,21 @@ export function buildGoodMoralCertificateHtml(
       }
 
       body {
+        height: 11in;
         margin: 0;
-        padding: 0.85in 0.82in 0.9in;
+        padding: 0.62in 0.72in 0.65in;
         background: #ffffff;
         color: #111111;
         font-family: "Times New Roman", Times, serif;
+        overflow: hidden;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+      }
+
+      .sheet {
+        height: 9.73in;
+        max-height: 9.73in;
+        overflow: hidden;
       }
 
       .top-row {
@@ -88,7 +96,7 @@ export function buildGoodMoralCertificateHtml(
         gap: 24px;
         font-size: 12pt;
         line-height: 1.35;
-        margin-bottom: 26px;
+        margin-bottom: 14px;
       }
 
       .date-line {
@@ -102,7 +110,7 @@ export function buildGoodMoralCertificateHtml(
 
       .title-block {
         text-align: center;
-        margin: 6px 0 26px;
+        margin: 4px 0 14px;
       }
 
       .title {
@@ -116,31 +124,33 @@ export function buildGoodMoralCertificateHtml(
       }
 
       .paragraph {
-        font-size: 12pt;
-        line-height: 1.65;
+        font-size: 11.5pt;
+        line-height: 1.38;
         margin: 0;
         text-align: justify;
       }
 
       .paragraph + .paragraph {
-        margin-top: 18px;
+        margin-top: 10px;
       }
 
       .spacer-before-certified-by {
-        height: 26px;
+        height: 28px;
       }
 
       .certified-by {
         font-size: 12pt;
         font-style: italic;
-        margin: 0 0 20px;
+        margin: 0 0 10px;
       }
 
       .signature-block {
         margin-left: auto;
         width: 320px;
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 24px;
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
 
       .signatory-name {
@@ -158,8 +168,10 @@ export function buildGoodMoralCertificateHtml(
 
       .footer-block {
         margin-top: 18px;
-        font-size: 12pt;
-        line-height: 1.65;
+        font-size: 11.5pt;
+        line-height: 1.3;
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
 
       .footer-line {
@@ -173,9 +185,11 @@ export function buildGoodMoralCertificateHtml(
       }
 
       .remarks {
-        margin-top: 18px;
-        font-size: 12pt;
-        line-height: 1.65;
+        margin-top: 8px;
+        font-size: 11.5pt;
+        line-height: 1.3;
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
 
       .remarks-label {
@@ -193,7 +207,8 @@ export function buildGoodMoralCertificateHtml(
 
       @media print {
         body {
-          padding: 0.85in 0.82in 0.9in;
+          height: 11in;
+          padding: 0.62in 0.72in 0.65in;
         }
       }
     </style>
