@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
 import {
-  formatPhpCurrency,
   GMC_REQUEST_ACADEMIC_YEAR_OPTIONS,
   GMC_REQUEST_PAYMENT_PROOF_ALLOWED_EXTENSIONS,
   GMC_REQUEST_PAYMENT_PROOF_ALLOWED_MIME_TYPES,
@@ -15,7 +14,7 @@ import {
 } from "@/lib/gmc-request";
 
 interface RequestFormClientProps {
-  feeAmountPhp: number;
+  feeAmountPhp?: number;
 }
 
 interface RequestFormState {
@@ -600,21 +599,16 @@ export default function RequestFormClient({
               </div>
 
               <div className="md:col-span-2 rounded-3xl border border-dashed border-[#2C4368]/30 bg-white px-5 py-5">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <label
-                      htmlFor="paymentProofFile"
-                      className="text-sm font-medium text-slate-800"
-                    >
-                      Proof of Payment Upload
-                    </label>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Accepted formats: JPG, PNG, PDF. Maximum file size: 5 MB.
-                    </p>
-                  </div>
-                  <div className="rounded-full bg-[#E0C07A] px-4 py-2 text-sm font-bold text-[#102040] shadow-sm">
-                    Fee: {formatPhpCurrency(feeAmountPhp)}
-                  </div>
+                <div>
+                  <label
+                    htmlFor="paymentProofFile"
+                    className="text-sm font-medium text-slate-800"
+                  >
+                    Proof of Payment Upload
+                  </label>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Accepted formats: JPG, PNG, PDF. Maximum file size: 5 MB.
+                  </p>
                 </div>
 
                 <input

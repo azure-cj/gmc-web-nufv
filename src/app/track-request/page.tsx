@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import PublicFooter from "@/components/public/public-footer";
 import {
   formatBusinessDateTime,
   formatPaymentVerificationLabel,
@@ -8,8 +9,6 @@ import {
 } from "@/lib/gmc-request";
 
 export const dynamic = "force-dynamic";
-
-type MaybePromise<T> = T | Promise<T>;
 
 interface TrackRequestPageProps {
   searchParams?: Promise<{
@@ -86,8 +85,8 @@ export default async function TrackRequestPage({
 
   return (
     <main className="min-h-screen bg-[#F9F2E7] px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-screen max-w-4xl items-center">
-        <section className="w-full overflow-hidden rounded-[2rem] border border-[#2C4368]/20 bg-white shadow-xl">
+      <div className="mx-auto flex min-h-screen max-w-4xl flex-col justify-between">
+        <section className="w-full my-auto overflow-hidden rounded-[2rem] border border-[#2C4368]/20 bg-white shadow-xl">
           <div className="border-b border-[#2C4368]/20 bg-[linear-gradient(135deg,#102040_0%,#2C4368_100%)] px-8 py-8 text-white">
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#E0C07A]">
               Discipline Office
@@ -316,6 +315,8 @@ export default async function TrackRequestPage({
             </div>
           </div>
         </section>
+
+        <PublicFooter />
       </div>
     </main>
   );
