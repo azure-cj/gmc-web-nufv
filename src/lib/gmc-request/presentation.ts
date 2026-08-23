@@ -73,7 +73,11 @@ export function formatBusinessDate(value: Date | string): string {
   }).format(new Date(value));
 }
 
-export function getFileViewerKind(fileUrl: string): "image" | "pdf" | "link" {
+export function getFileViewerKind(fileUrl: string | null | undefined): "image" | "pdf" | "link" {
+  if (!fileUrl) {
+    return "link";
+  }
+
   const lower = fileUrl.toLowerCase();
 
   if (fileViewerImageExtensions.some((extension) => lower.endsWith(extension))) {

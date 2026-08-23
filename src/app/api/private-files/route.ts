@@ -2,6 +2,7 @@ import { get } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { loadValidatedStaffSessionFromRequest } from "@/lib/staff-session";
+import { regenerateCertificatePdfOnDemand } from "@/server/services/certificate-pdf-service";
 
 export const runtime = "nodejs";
 
@@ -23,41 +24,75 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ formError: "Missing file URL." }, { status: 400 });
   }
 
-  const result = await get(fileReference, {
-    access: "private",
-    token: process.env.BLOB_READ_WRITE_TOKEN ?? undefined,
-    ifNoneMatch: request.headers.get("if-none-match") ?? undefined,
-  });
+  let result: Awaited<ReturnType<typeof get>> | null = null;
 
-  if (!result) {
-    return NextResponse.json({ formError: "File not found." }, { status: 404 });
+  try {
+    result = await get(fileReference, {
+      access: "private",
+      token: process.env.BLOB_READ_WRITE_TOKEN ?? undefined,
+      ifNoneMatch: request.headers.get("if-none-match") ?? undefined,
+    });
+  } catch (err) {
+    console.warn(`[private-files] Blob fetch failed for reference: ${fileReference}`, err);
+    result = null;
   }
 
-  if (result.statusCode === 304) {
-    return new NextResponse(null, {
-      status: 304,
+  if (result) {
+    if (result.statusCode === 304) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          ETag: result.blob.etag,
+          "Cache-Control": "private, no-cache",
+        },
+      });
+    }
+
+    const contentType = result.blob.contentType ?? "application/octet-stream";
+    const requestedFilename = request.nextUrl.searchParams.get("downloadName");
+    const filename = sanitizeDownloadFilename(
+      requestedFilename || fileReference.split("/").pop() || "file.bin",
+    );
+
+    return new NextResponse(result.stream, {
       headers: {
-        ETag: result.blob.etag,
+        "Content-Type": contentType,
+        "Content-Disposition": `${requestedFilename ? "attachment" : "inline"}; filename="${filename}"`,
+        "X-Content-Type-Options": "nosniff",
         "Cache-Control": "private, no-cache",
+        ETag: result.blob.etag,
       },
     });
   }
 
-  const contentType = result.blob.contentType ?? "application/octet-stream";
-  const requestedFilename = request.nextUrl.searchParams.get("downloadName");
-  const filename = sanitizeDownloadFilename(
-    requestedFilename || fileReference.split("/").pop() || "file.bin",
-  );
+  // If file was not found in Blob storage (e.g. purged), attempt on-demand certificate PDF regeneration
+  try {
+    const regenerated = await regenerateCertificatePdfOnDemand(fileReference);
 
-  return new NextResponse(result.stream, {
-    headers: {
-      "Content-Type": contentType,
-      "Content-Disposition": `${requestedFilename ? "attachment" : "inline"}; filename="${filename}"`,
-      "X-Content-Type-Options": "nosniff",
-      "Cache-Control": "private, no-cache",
-      ETag: result.blob.etag,
-    },
-  });
+    if (regenerated) {
+      const requestedFilename = request.nextUrl.searchParams.get("downloadName");
+      const filename = sanitizeDownloadFilename(requestedFilename || regenerated.filename);
+
+      return new NextResponse(new Uint8Array(regenerated.pdfBuffer), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `${requestedFilename ? "attachment" : "inline"}; filename="${filename}"`,
+          "X-Content-Type-Options": "nosniff",
+          "Cache-Control": "private, no-cache",
+        },
+      });
+    }
+  } catch (regenError) {
+    console.error(
+      `[private-files] On-demand PDF regeneration failed for reference: ${fileReference}`,
+      regenError,
+    );
+  }
+
+  return NextResponse.json(
+    { formError: "File is no longer available (purged by retention policy)." },
+    { status: 404 },
+  );
 }
 
 function sanitizeDownloadFilename(value: string): string {

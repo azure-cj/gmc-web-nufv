@@ -718,9 +718,10 @@ export function buildRecordsArchiveReportHtml(
       </table>
 
       <div class="footer">
-        This export reflects the current records archive at the time of generation. Requests,
-        payment proofs, generated PDFs, and audit logs are retained indefinitely. Access is
-        restricted to staff users.
+        This export reflects the current records archive at the time of generation. Database
+        records and audit logs are retained indefinitely. Payment proofs are purged after release.
+        Certificate PDFs are regenerated on demand if not currently stored. Access is restricted to
+        staff users.
       </div>
     </div>
   </body>

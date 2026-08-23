@@ -69,7 +69,7 @@ model GmcRequest {
   studentEmail              String
   purposeOfRequest          PurposeOfRequest
   officialReceiptNumber     String?
-  paymentProofFileUrl       String
+  paymentProofFileUrl       String?
   paymentVerificationStatus PaymentVerificationStatus  @default(UNVERIFIED)
   status                    GmcRequestStatus           @default(PENDING)
   reviewNotes               String?

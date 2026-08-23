@@ -1,4 +1,8 @@
-export function getPrivateStorageDownloadUrl(fileUrl: string, downloadName?: string): string {
+export function getPrivateStorageDownloadUrl(fileUrl: string | null | undefined, downloadName?: string): string {
+  if (!fileUrl) {
+    return "";
+  }
+
   const params = new URLSearchParams({ url: fileUrl });
 
   if (downloadName) {

@@ -275,36 +275,49 @@ export default async function StaffRequestReviewPage({
             children: (
               <div className="space-y-4">
                 <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-100">
-                  {proofViewerKind === "image" ? (
-                    <img
-                      src={proofFileUrl}
-                      alt={`Payment proof for ${request.requestReferenceNumber}`}
-                      className="h-auto w-full object-contain"
-                    />
-                  ) : proofViewerKind === "pdf" ? (
-                    <iframe
-                      src={proofFileUrl}
-                      title={`Payment proof for ${request.requestReferenceNumber}`}
-                      className="h-[36rem] w-full"
-                    />
+                  {request.paymentProofFileUrl ? (
+                    proofViewerKind === "image" ? (
+                      <img
+                        src={proofFileUrl}
+                        alt={`Payment proof for ${request.requestReferenceNumber}`}
+                        className="h-auto w-full object-contain"
+                      />
+                    ) : proofViewerKind === "pdf" ? (
+                      <iframe
+                        src={proofFileUrl}
+                        title={`Payment proof for ${request.requestReferenceNumber}`}
+                        className="h-[36rem] w-full"
+                      />
+                    ) : (
+                      <div className="flex min-h-80 flex-col items-start justify-center gap-3 p-6">
+                        <p className="text-sm text-slate-600">
+                          This proof file can be opened directly in a new tab.
+                        </p>
+                        <a
+                          href={proofFileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex rounded-2xl bg-[#1E1E2C] px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                        >
+                          Open proof file
+                        </a>
+                      </div>
+                    )
                   ) : (
-                    <div className="flex min-h-80 flex-col items-start justify-center gap-3 p-6">
-                      <p className="text-sm text-slate-600">
-                        This proof file can be opened directly in a new tab.
+                    <div className="flex min-h-48 flex-col items-center justify-center gap-2 p-6 text-center">
+                      <span className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-3.5 py-1.5 text-xs font-semibold text-amber-800">
+                        Purged by Retention Policy
+                      </span>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Payment proof file was purged 30 days post-release per automated retention policy.
                       </p>
-                      <a
-                        href={proofFileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex rounded-2xl bg-[#1E1E2C] px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                      >
-                        Open proof file
-                      </a>
                     </div>
                   )}
                 </div>
                 <p className="text-sm text-slate-500">
-                  File is stored securely and can be viewed through the secure preview above.
+                  {request.paymentProofFileUrl
+                    ? "File is stored securely and can be viewed through the secure preview above."
+                    : "Payment proof file has been purged; official receipt number and verification status remain recorded in database."}
                 </p>
               </div>
             ),
