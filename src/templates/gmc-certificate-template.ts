@@ -74,7 +74,7 @@ export function buildGoodMoralCertificateHtml(
       body {
         height: 11in;
         margin: 0;
-        padding: 0.62in 0.72in 0.65in;
+        padding: 1.9in 0.72in 0.65in;
         background: #ffffff;
         color: #111111;
         font-family: "Times New Roman", Times, serif;
@@ -84,8 +84,8 @@ export function buildGoodMoralCertificateHtml(
       }
 
       .sheet {
-        height: 9.73in;
-        max-height: 9.73in;
+        height: 8.45in;
+        max-height: 8.45in;
         overflow: hidden;
       }
 
@@ -96,7 +96,7 @@ export function buildGoodMoralCertificateHtml(
         gap: 24px;
         font-size: 12pt;
         line-height: 1.35;
-        margin-bottom: 14px;
+        margin-bottom: 0;
       }
 
       .date-line {
@@ -110,7 +110,7 @@ export function buildGoodMoralCertificateHtml(
 
       .title-block {
         text-align: center;
-        margin: 4px 0 14px;
+        margin: 38px 0 42px;
       }
 
       .title {
@@ -208,7 +208,7 @@ export function buildGoodMoralCertificateHtml(
       @media print {
         body {
           height: 11in;
-          padding: 0.62in 0.72in 0.65in;
+          padding: 1.9in 0.72in 0.65in;
         }
       }
     </style>
