@@ -1,30 +1,13 @@
 import type { GmcRequestStatus, Prisma, PrismaClient } from "@prisma/client";
 import { getBusinessDayRange, getBusinessMonthRange } from "@/lib/business-time";
+import type {
+  StaffDashboardFilters,
+  StaffRequestStatusFilter,
+} from "./staff-dashboard-service";
 
-const DASHBOARD_PAGE_SIZE = 5;
+const ISSUED_PAGE_SIZE = 10;
 
-export const STAFF_REQUEST_STATUSES = [
-  "all",
-  "PENDING",
-  "APPROVED",
-  "GENERATED",
-  "RETURNED",
-  "REJECTED",
-  "RELEASED",
-  "DELIVERY_FAILED",
-] as const;
-
-export type StaffRequestStatusFilter = (typeof STAFF_REQUEST_STATUSES)[number];
-
-export interface StaffDashboardFilters {
-  search: string;
-  status: StaffRequestStatusFilter;
-  from: string;
-  to: string;
-  page: number;
-}
-
-export interface StaffDashboardRequestRow {
+export interface IssuedCertificateRow {
   id: string;
   requestReferenceNumber: string;
   studentId: string;
@@ -32,23 +15,31 @@ export interface StaffDashboardRequestRow {
   studentMiddleInitial: string | null;
   studentLastName: string;
   studentCourseProgram: string;
+  studentEmail: string;
   purposeOfRequest: string;
   status: GmcRequestStatus;
   dateSubmitted: Date;
+  dateReleased: Date | null;
   certificate: {
+    id: string;
     certificateNumber: string;
+    dateOfIssuance: Date;
     generatedPdfUrl: string | null;
+    authorizedSignatory: string;
+    officeDesignation: string;
   } | null;
+  pdfStatus: "AVAILABLE" | "PURGED" | "NOT_GENERATED";
 }
 
-export interface StaffDashboardData {
+export interface IssuedCertificatesData {
   summary: {
-    totalRequests: number;
-    pendingRequests: number;
-    approvedToday: number;
-    releasedThisMonth: number;
+    totalIssued: number;
+    issuedThisMonth: number;
+    issuedToday: number;
+    activeInStorage: number;
+    onDemandPurged: number;
   };
-  requests: StaffDashboardRequestRow[];
+  certificates: IssuedCertificateRow[];
   pagination: {
     page: number;
     pageSize: number;
@@ -101,18 +92,14 @@ function mapStatusFilter(status: StaffRequestStatusFilter): GmcRequestStatus | n
   }
 }
 
-export function normalizeDashboardPage(page: number): number {
+export function normalizeIssuedPage(page: number): number {
   return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
 }
 
-export function getDashboardPageSize(): number {
-  return DASHBOARD_PAGE_SIZE;
-}
-
-export async function getStaffDashboardData(
+export async function getIssuedCertificatesData(
   db: PrismaClient,
   filters: StaffDashboardFilters,
-): Promise<StaffDashboardData> {
+): Promise<IssuedCertificatesData> {
   const search = filters.search.trim();
   const statusFilter = mapStatusFilter(filters.status);
   const fromDate = filters.from ? new Date(`${filters.from}T00:00:00+08:00`) : null;
@@ -129,54 +116,80 @@ export async function getStaffDashboardData(
     ...(statusFilter ? { status: statusFilter } : {}),
     ...(fromDate || nextToDate
       ? {
-          dateSubmitted: {
-            ...(fromDate ? { gte: fromDate } : {}),
-            ...(nextToDate ? { lt: nextToDate } : {}),
-          },
+          OR: [
+            {
+              dateReleased: {
+                ...(fromDate ? { gte: fromDate } : {}),
+                ...(nextToDate ? { lt: nextToDate } : {}),
+              },
+            },
+            {
+              dateReleased: null,
+              dateSubmitted: {
+                ...(fromDate ? { gte: fromDate } : {}),
+                ...(nextToDate ? { lt: nextToDate } : {}),
+              },
+            },
+          ],
         }
       : {}),
     ...buildSearchWhere(search),
   };
 
-  const pageSize = DASHBOARD_PAGE_SIZE;
-  const requestedPage = normalizeDashboardPage(filters.page);
+  const pageSize = ISSUED_PAGE_SIZE;
+  const requestedPage = normalizeIssuedPage(filters.page);
 
   const [
-    totalRequests,
-    pendingRequests,
-    approvedToday,
-    releasedThisMonth,
+    totalIssued,
+    issuedThisMonth,
+    issuedToday,
     totalResults,
+    purgedCount,
   ] = await Promise.all([
-    db.gmcRequest.count(),
-    db.gmcRequest.count({ where: { status: "PENDING" } }),
-    db.auditLogEntry.count({
+    db.gmcRequest.count({
       where: {
-        action: "REQUEST_APPROVED",
-        timestamp: {
-          gte: businessDayRange.start,
-          lt: businessDayRange.endExclusive,
-        },
+        status: "RELEASED",
+        certificate: { isNot: null },
       },
     }),
     db.gmcRequest.count({
       where: {
         status: "RELEASED",
+        certificate: { isNot: null },
         dateReleased: {
           gte: businessMonthRange.start,
           lt: businessMonthRange.endExclusive,
         },
       },
     }),
+    db.gmcRequest.count({
+      where: {
+        status: "RELEASED",
+        certificate: { isNot: null },
+        dateReleased: {
+          gte: businessDayRange.start,
+          lt: businessDayRange.endExclusive,
+        },
+      },
+    }),
     db.gmcRequest.count({ where }),
+    db.auditLogEntry.count({
+      where: {
+        action: "CERTIFICATE_PDF_PURGED",
+      },
+    }),
   ]);
 
   const totalPages = totalResults > 0 ? Math.ceil(totalResults / pageSize) : 0;
   const page = totalPages > 0 ? Math.min(requestedPage, totalPages) : 1;
 
-  const requests = await db.gmcRequest.findMany({
+  const rawRequests = await db.gmcRequest.findMany({
     where,
-    orderBy: [{ dateSubmitted: "desc" }, { requestReferenceNumber: "desc" }],
+    orderBy: [
+      { dateReleased: "desc" },
+      { dateSubmitted: "desc" },
+      { requestReferenceNumber: "desc" },
+    ],
     skip: totalResults > 0 ? (page - 1) * pageSize : 0,
     take: pageSize,
     select: {
@@ -187,26 +200,82 @@ export async function getStaffDashboardData(
       studentMiddleInitial: true,
       studentLastName: true,
       studentCourseProgram: true,
+      studentEmail: true,
       purposeOfRequest: true,
       status: true,
       dateSubmitted: true,
+      dateReleased: true,
       certificate: {
         select: {
+          id: true,
           certificateNumber: true,
+          dateOfIssuance: true,
           generatedPdfUrl: true,
+          authorizedSignatory: true,
+          officeDesignation: true,
+        },
+      },
+      auditLogs: {
+        where: {
+          action: {
+            in: [
+              "CERTIFICATE_PDF_PURGED",
+              "CERTIFICATE_PDF_REGENERATED_ON_DEMAND",
+            ],
+          },
+        },
+        orderBy: { timestamp: "desc" },
+        take: 1,
+        select: {
+          action: true,
         },
       },
     },
   });
 
+  const certificates: IssuedCertificateRow[] = rawRequests.map((req) => {
+    let pdfStatus: "AVAILABLE" | "PURGED" | "NOT_GENERATED" = "NOT_GENERATED";
+
+    if (req.certificate) {
+      const latestAuditAction = req.auditLogs[0]?.action;
+      if (latestAuditAction === "CERTIFICATE_PDF_PURGED") {
+        pdfStatus = "PURGED";
+      } else if (req.certificate.generatedPdfUrl) {
+        pdfStatus = "AVAILABLE";
+      } else {
+        pdfStatus = "PURGED";
+      }
+    }
+
+    return {
+      id: req.id,
+      requestReferenceNumber: req.requestReferenceNumber,
+      studentId: req.studentId,
+      studentFirstName: req.studentFirstName,
+      studentMiddleInitial: req.studentMiddleInitial,
+      studentLastName: req.studentLastName,
+      studentCourseProgram: req.studentCourseProgram,
+      studentEmail: req.studentEmail,
+      purposeOfRequest: req.purposeOfRequest,
+      status: req.status,
+      dateSubmitted: req.dateSubmitted,
+      dateReleased: req.dateReleased,
+      certificate: req.certificate,
+      pdfStatus,
+    };
+  });
+
+  const activeInStorage = Math.max(0, totalIssued - purgedCount);
+
   return {
     summary: {
-      totalRequests,
-      pendingRequests,
-      approvedToday,
-      releasedThisMonth,
+      totalIssued,
+      issuedThisMonth,
+      issuedToday,
+      activeInStorage,
+      onDemandPurged: purgedCount,
     },
-    requests,
+    certificates,
     pagination: {
       page,
       pageSize,

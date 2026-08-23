@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { parseStaffDashboardFilters } from "@/lib/staff-dashboard-query";
-import StaffRequestsWorkspace from "@/components/staff/staff-requests-workspace";
-import { getStaffDashboardData } from "@/server/services/staff-dashboard-service";
+import StaffIssuedCertificatesWorkspace from "@/components/staff/staff-issued-certificates-workspace";
+import { getIssuedCertificatesData } from "@/server/services/issued-certificates-service";
 
 export const dynamic = "force-dynamic";
 
@@ -21,22 +21,20 @@ export default async function StaffIssuedCertificatesPage({
   const resolvedSearchParams = (await searchParams) ?? {};
   const parsedFilters = parseStaffDashboardFilters(resolvedSearchParams);
 
-  // Default status to "GENERATED" for issued certificates workspace if not explicitly set
+  // Default status to "RELEASED" for issued certificates workspace if not explicitly specified
   const filters = {
     ...parsedFilters,
-    status: resolvedSearchParams.status ? parsedFilters.status : "GENERATED",
+    status: resolvedSearchParams.status ? parsedFilters.status : "RELEASED",
   };
 
-  const data = await getStaffDashboardData(prisma, filters);
+  const data = await getIssuedCertificatesData(prisma, filters);
 
   return (
-    <StaffRequestsWorkspace
-      title="Issued Certificates"
-      description="View, review, and manage generated and released Good Moral Certificates."
-      basePath="/staff/issued-certificates"
-      detailBasePath="/staff/gmc-requests"
+    <StaffIssuedCertificatesWorkspace
       data={data}
       filters={filters}
+      basePath="/staff/issued-certificates"
+      detailBasePath="/staff/gmc-requests"
     />
   );
 }
