@@ -118,7 +118,7 @@ export async function generateCertificatePdfForRequest(
         dateReleased: new Date(),
         actorId: input.staffUserId,
         auditAction: "CERTIFICATE_APPROVED_AND_RELEASED_PDF_DOWNLOAD",
-        auditNotes: `Certificate ${certificate.certificateNumber} generated and released for download; email not enabled.`,
+        auditNotes: `Certificate ${certificate.certificateNumber} generated and released for in-person pickup at Discipline Office.`,
       });
     });
   } catch (error) {

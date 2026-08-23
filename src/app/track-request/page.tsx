@@ -41,7 +41,7 @@ function lookupStatusHint(status: string): string {
     case "REJECTED":
       return "Your request was rejected. Please contact the Discipline Office if you need clarification.";
     case "RELEASED":
-      return "Your certificate has been released and emailed to your registered address.";
+      return "Your certificate is ready for pickup at the Discipline Office. Please bring a valid ID and provide your reference number and name below.";
     default:
       return "Please contact the Discipline Office for follow-up.";
   }
@@ -191,6 +191,46 @@ export default async function TrackRequestPage({
                     <p className="mt-2 text-sm leading-7 text-slate-600">
                       {lookupStatusHint(request.status)}
                     </p>
+
+                    {request.status === "RELEASED" ? (
+                      <div className="mt-5 rounded-2xl border-2 border-[#102040]/15 bg-[#F0F4F8] p-5">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[#102040]" />
+                          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#102040]">
+                            Discipline Office Pickup Details
+                          </p>
+                        </div>
+                        <p className="mt-1 text-xs leading-5 text-slate-600">
+                          Please bring a valid ID and present or screenshot these verification details when claiming your certificate:
+                        </p>
+                        <div className="mt-3.5 grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                              Reference Number
+                            </span>
+                            <p className="mt-1 font-mono text-base font-bold text-[#102040]">
+                              {request.requestReferenceNumber}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                              Student Name
+                            </span>
+                            <p className="mt-1 text-base font-bold text-[#102040]">
+                              {[
+                                request.studentFirstName,
+                                request.studentMiddleInitial
+                                  ? `${request.studentMiddleInitial}.`
+                                  : null,
+                                request.studentLastName,
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
 
                     <div className="mt-6 grid gap-4 sm:grid-cols-2">
                       {[
