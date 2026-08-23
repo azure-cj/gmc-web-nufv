@@ -52,7 +52,7 @@ export default function StaffNavbar({ staffUser }: StaffNavbarProps) {
         </p>
       </div>
 
-      {/* Right: Search, Notification Bell, User block */}
+      {/* Right: Search and user block */}
       <div className="flex items-center gap-3 sm:gap-4 shrink-0">
         {/* Search Input */}
         <div className="relative hidden sm:block w-48 lg:w-64">
@@ -67,18 +67,6 @@ export default function StaffNavbar({ staffUser }: StaffNavbarProps) {
             className="w-full rounded-lg border border-[#2D2D3F] bg-[#161622] py-1.5 pl-9 pr-3 text-xs text-white placeholder-[#94A3B8] transition focus:border-[#3B8FF3] focus:outline-none focus:ring-1 focus:ring-[#3B8FF3]"
           />
         </div>
-
-        {/* Notification Bell */}
-        <button
-          type="button"
-          aria-label="View notifications"
-          className="relative rounded-lg p-2 text-[#94A3B8] transition hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#3B8FF3]"
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#F29F67] ring-2 ring-[#1E1E2C]" />
-        </button>
 
         {/* User Block */}
         <div className="flex items-center gap-2.5 pl-3 border-l border-[#2D2D3F]">
