@@ -1,5 +1,6 @@
 import {
   type GmcRequestStatus,
+  type Prisma,
   type PrismaClient,
   type PurposeOfRequest,
 } from "@prisma/client";
@@ -54,6 +55,10 @@ export interface GmcRequestProcessDraft {
     studentAcademicYear: string;
     purposeOfCertificate: string;
   };
+  invoiceNumberDuplicate: {
+    exists: boolean;
+    requestReferenceNumber: string | null;
+  };
   certificate: {
     id: string;
     certificateNumber: string;
@@ -85,6 +90,10 @@ function getReleaseDeliveryStatus(
 
 export function buildGmcRequestProcessDraft(
   request: LoadedGeneratedCertificateReviewRequest,
+  invoiceNumberDuplicate: {
+    exists: boolean;
+    requestReferenceNumber: string | null;
+  } = { exists: false, requestReferenceNumber: null },
 ): GmcRequestProcessDraft {
   const certificate = request.certificate;
   const editable = buildCertificateReviewEditableValues(request);
@@ -119,6 +128,7 @@ export function buildGmcRequestProcessDraft(
       studentAcademicYear: editable.academicYear,
       purposeOfCertificate: editable.purposeOfCertificate,
     },
+    invoiceNumberDuplicate: invoiceNumberDuplicate,
     certificate: certificate
       ? {
           id: certificate.id,
@@ -154,6 +164,29 @@ export interface GmcRequestProcessConfirmInput {
   purposeOfCertificate: string;
   officialReceiptNumber: string;
   hasViolationRecord: boolean;
+}
+
+export async function findDuplicateInvoiceRequest(
+  db: PrismaClient | Prisma.TransactionClient,
+  requestId: string,
+  officialReceiptNumber: string | null,
+): Promise<{ exists: boolean; requestReferenceNumber: string | null }> {
+  if (!officialReceiptNumber || !officialReceiptNumber.trim()) {
+    return { exists: false, requestReferenceNumber: null };
+  }
+
+  const duplicate = await db.gmcRequest.findFirst({
+    where: {
+      officialReceiptNumber: officialReceiptNumber.trim(),
+      id: { not: requestId },
+    },
+    select: { requestReferenceNumber: true },
+  });
+
+  return {
+    exists: Boolean(duplicate),
+    requestReferenceNumber: duplicate?.requestReferenceNumber ?? null,
+  };
 }
 
 function splitFullName(fullName: string): {
@@ -378,7 +411,13 @@ export async function confirmGmcRequestProcess(
       throw new Error("Unable to reload the request after confirmation.");
     }
 
-    return buildGmcRequestProcessDraft(refreshed);
+    const invoiceNumberDuplicate = await findDuplicateInvoiceRequest(
+      tx,
+      currentRequest.id,
+      refreshed.officialReceiptNumber,
+    );
+
+    return buildGmcRequestProcessDraft(refreshed, invoiceNumberDuplicate);
   });
 }
 
@@ -436,6 +475,12 @@ export async function rejectGmcRequestProcess(
       throw new Error("Unable to reload the request after rejection.");
     }
 
-    return buildGmcRequestProcessDraft(refreshed);
+    const invoiceNumberDuplicate = await findDuplicateInvoiceRequest(
+      tx,
+      currentRequest.id,
+      refreshed.officialReceiptNumber,
+    );
+
+    return buildGmcRequestProcessDraft(refreshed, invoiceNumberDuplicate);
   });
 }

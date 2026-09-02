@@ -8,6 +8,7 @@ import { generateCertificatePdfForRequest } from "@/server/services/certificate-
 import {
   buildGmcRequestProcessDraft,
   confirmGmcRequestProcess,
+  findDuplicateInvoiceRequest,
   rejectGmcRequestProcess,
 } from "@/server/services/gmc-request-process-service";
 
@@ -110,7 +111,13 @@ async function loadProcessDraft(requestId: string) {
     return { draft: null };
   }
 
-  return { draft: buildGmcRequestProcessDraft(request) };
+  const invoiceNumberDuplicate = await findDuplicateInvoiceRequest(
+    prisma,
+    requestId,
+    request.officialReceiptNumber,
+  );
+
+  return { draft: buildGmcRequestProcessDraft(request, invoiceNumberDuplicate) };
 }
 
 export async function GET(

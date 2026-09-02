@@ -3,6 +3,8 @@ import {
   GMC_REQUEST_PAYMENT_RECEIPT_MAX_LENGTH,
   GMC_REQUEST_PURPOSE_VALUES,
   GMC_REQUEST_TITLE_PREFIX_VALUES,
+  INVOICE_NUMBER_FORMAT_HINT,
+  INVOICE_NUMBER_PATTERN,
   type GmcRequestCourseProgramValue,
   type GmcRequestPurposeValue,
   type GmcRequestTitlePrefixValue,
@@ -74,6 +76,10 @@ function validatePaymentReceiptNumber(value: string): string | null {
 
   if (receiptNumber.length > GMC_REQUEST_PAYMENT_RECEIPT_MAX_LENGTH) {
     return `The invoice / receipt number must be ${GMC_REQUEST_PAYMENT_RECEIPT_MAX_LENGTH} characters or fewer.`;
+  }
+
+  if (!INVOICE_NUMBER_PATTERN.test(receiptNumber)) {
+    return INVOICE_NUMBER_FORMAT_HINT;
   }
 
   return null;

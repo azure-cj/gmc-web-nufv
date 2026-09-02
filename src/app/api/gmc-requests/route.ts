@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { consoleEmailService } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
-import { submitGmcRequest } from "@/server/services/gmc-request-intake-service";
+import { submitGmcRequest, DuplicateInvoiceNumberError } from "@/server/services/gmc-request-intake-service";
 import { validateGmcRequestSubmission } from "@/lib/gmc-request";
 import { getCurrentAcademicYear, getCurrentTerm } from "@/lib/system-settings";
 
@@ -63,6 +63,19 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
+    if (error instanceof DuplicateInvoiceNumberError) {
+      return NextResponse.json(
+        {
+          fieldErrors: {
+            paymentReceiptNumber:
+              "This invoice number has already been used for a request. If you believe this is an error, please contact the Discipline Office.",
+          },
+          formError: "This invoice number has already been used for a request.",
+        },
+        { status: 409 },
+      );
+    }
+
     console.error("GMC request submission failed:", error);
     return NextResponse.json(
       {

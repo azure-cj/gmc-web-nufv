@@ -18,6 +18,17 @@ export interface SubmitGmcRequestResult {
   acknowledgmentEmailSent: boolean;
 }
 
+export class DuplicateInvoiceNumberError extends Error {
+  constructor(
+    public readonly existingRequestReferenceNumber: string,
+  ) {
+    super(
+      `Invoice number already used on request ${existingRequestReferenceNumber}.`,
+    );
+    this.name = "DuplicateInvoiceNumberError";
+  }
+}
+
 export async function submitGmcRequest(
   db: DatabaseClient,
   emailService: EmailService,
@@ -28,6 +39,19 @@ export async function submitGmcRequest(
   let request: GmcRequest | null = null;
   let requestReferenceNumber = "";
   let studentName = "";
+
+  const existingInvoiceRequest = await db.gmcRequest.findFirst({
+    where: {
+      officialReceiptNumber: input.paymentReceiptNumber,
+    },
+    select: { requestReferenceNumber: true },
+  });
+
+  if (existingInvoiceRequest) {
+    throw new DuplicateInvoiceNumberError(
+      existingInvoiceRequest.requestReferenceNumber,
+    );
+  }
 
   await db.$transaction(async (tx) => {
     const student = await tx.student.upsert({

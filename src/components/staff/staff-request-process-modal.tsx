@@ -46,6 +46,10 @@ interface ProcessDraft {
     studentAcademicYear: string;
     purposeOfCertificate: string;
   };
+  invoiceNumberDuplicate: {
+    exists: boolean;
+    requestReferenceNumber: string | null;
+  };
   certificate: {
     id: string;
     certificateNumber: string;
@@ -695,7 +699,7 @@ export default function StaffRequestProcessModal({
                     officialReceiptNumber: event.target.value,
                   }))
                 }
-                placeholder="e.g. INV01-000044218"
+                placeholder="e.g. INV01-12345678901"
                 className={fieldInputClassName(
                   Boolean(fieldErrors.officialReceiptNumber),
                 )}
@@ -711,6 +715,21 @@ export default function StaffRequestProcessModal({
                 Confirm it against the payment record or correct it if needed.
               </p>
             )}
+
+            {draft?.invoiceNumberDuplicate?.exists ? (
+              <div className="mt-4 rounded-2xl border border-amber-400/60 bg-amber-50 px-4 py-3">
+                <p className="text-sm font-semibold text-amber-900">
+                  Warning: This invoice number has already been used on another request
+                </p>
+                <p className="mt-1 text-sm leading-6 text-amber-900/90">
+                  This invoice number is already on request{" "}
+                  <span className="font-semibold">
+                    {draft.invoiceNumberDuplicate.requestReferenceNumber ?? "another request"}
+                  </span>
+                  . Please verify this before proceeding.
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
 

@@ -7,6 +7,7 @@ import {
   GMC_REQUEST_PAYMENT_RECEIPT_MAX_LENGTH,
   GMC_REQUEST_PURPOSE_OPTIONS,
   GMC_REQUEST_TITLE_PREFIX_OPTIONS,
+  INVOICE_NUMBER_PATTERN,
   type GmcRequestFieldErrors,
   validateGmcRequestSubmission,
 } from "@/lib/gmc-request";
@@ -112,6 +113,9 @@ export default function RequestFormClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submission, setSubmission] = useState<SubmissionResult | null>(null);
   const [bannerImageFailed, setBannerImageFailed] = useState(false);
+  const [duplicateInvoiceError, setDuplicateInvoiceError] = useState<string | null>(
+    null,
+  );
 
   const updateField = <K extends keyof RequestFormState>(
     key: K,
@@ -128,12 +132,47 @@ export default function RequestFormClient({
       return next;
     });
     setFormError(null);
+    if (key === "paymentReceiptNumber") {
+      setDuplicateInvoiceError(null);
+    }
+  };
+
+  const checkInvoiceDuplicate = async (invoiceNumber: string): Promise<boolean> => {
+    const trimmed = invoiceNumber.trim();
+
+    if (!trimmed || !INVOICE_NUMBER_PATTERN.test(trimmed)) {
+      setDuplicateInvoiceError(null);
+      return false;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/gmc-requests/check-invoice?invoiceNumber=${encodeURIComponent(trimmed)}`,
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        exists?: boolean;
+      } | null;
+
+      if (payload?.exists) {
+        setDuplicateInvoiceError(
+          "This invoice number has already been used for a request. If you believe this is an error, please contact the Discipline Office.",
+        );
+        return true;
+      }
+
+      setDuplicateInvoiceError(null);
+      return false;
+    } catch {
+      setDuplicateInvoiceError(null);
+      return false;
+    }
   };
 
   const clearFormState = () => {
     setValues(buildInitialFormState(defaultAcademicYear, defaultTerm));
     setErrors({});
     setFormError(null);
+    setDuplicateInvoiceError(null);
   };
 
   const resetForm = () => {
@@ -148,6 +187,16 @@ export default function RequestFormClient({
     const validation = await validateGmcRequestSubmission(values);
     if (!validation.values) {
       setErrors(validation.fieldErrors);
+      return;
+    }
+
+    const isDuplicate = await checkInvoiceDuplicate(
+      validation.values.paymentReceiptNumber,
+    );
+    if (isDuplicate) {
+      setFormError(
+        "This invoice number has already been used for a request. If you believe this is an error, please contact the Discipline Office.",
+      );
       return;
     }
 
@@ -620,11 +669,20 @@ export default function RequestFormClient({
                   onChange={(event) =>
                     updateField("paymentReceiptNumber", event.target.value)
                   }
-                  placeholder="e.g. INV01-000044218"
-                  className={fieldClassName(Boolean(errors.paymentReceiptNumber))}
-                  aria-invalid={Boolean(errors.paymentReceiptNumber)}
+                  onBlur={(event) => {
+                    if (INVOICE_NUMBER_PATTERN.test(event.target.value.trim())) {
+                      void checkInvoiceDuplicate(event.target.value);
+                    }
+                  }}
+                  placeholder="e.g. INV01-12345678901"
+                  className={fieldClassName(
+                    Boolean(errors.paymentReceiptNumber) || Boolean(duplicateInvoiceError),
+                  )}
+                  aria-invalid={
+                    Boolean(errors.paymentReceiptNumber) || Boolean(duplicateInvoiceError)
+                  }
                   aria-describedby={
-                    errors.paymentReceiptNumber
+                    errors.paymentReceiptNumber || duplicateInvoiceError
                       ? "paymentReceiptNumber-error"
                       : "paymentReceiptNumber-help"
                   }
@@ -635,6 +693,10 @@ export default function RequestFormClient({
                 {errors.paymentReceiptNumber ? (
                   <p id="paymentReceiptNumber-error" className="mt-2 text-sm text-rose-700">
                     {errors.paymentReceiptNumber}
+                  </p>
+                ) : duplicateInvoiceError ? (
+                  <p id="paymentReceiptNumber-error" className="mt-2 text-sm font-medium text-rose-700">
+                    {duplicateInvoiceError}
                   </p>
                 ) : null}
               </div>

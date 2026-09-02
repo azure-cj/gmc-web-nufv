@@ -46,3 +46,7 @@ export const GMC_REQUEST_TITLE_PREFIX_VALUES = GMC_REQUEST_TITLE_PREFIX_OPTIONS.
 ) as readonly GmcRequestTitlePrefixValue[];
 
 export const GMC_REQUEST_PAYMENT_RECEIPT_MAX_LENGTH = 64;
+
+export const INVOICE_NUMBER_PATTERN = /^INV01-\d{11}$/;
+export const INVOICE_NUMBER_FORMAT_HINT =
+  "Invoice number must start with INV01- followed by 11 digits (e.g. INV01-12345678901).";

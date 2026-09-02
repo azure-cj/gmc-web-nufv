@@ -155,6 +155,17 @@ export default async function StaffRequestReviewPage({
     notFound();
   }
 
+  const duplicateInvoiceRequest =
+    request.officialReceiptNumber
+      ? await prisma.gmcRequest.findFirst({
+          where: {
+            officialReceiptNumber: request.officialReceiptNumber,
+            id: { not: request.id },
+          },
+          select: { requestReferenceNumber: true },
+        })
+      : null;
+
   const proofViewerKind = getFileViewerKind(request.paymentProofFileUrl);
   const proofFileUrl = getPrivateStorageDownloadUrl(request.paymentProofFileUrl);
   const returnTo = safeReturnTo(firstSearchParam(resolvedSearchParams.returnTo) || "/staff/gmc-requests");
@@ -288,6 +299,21 @@ export default async function StaffRequestReviewPage({
                     review.
                   </p>
                 </div>
+
+                {duplicateInvoiceRequest ? (
+                  <div className="rounded-2xl border border-amber-400/60 bg-amber-50 px-4 py-3">
+                    <p className="text-sm font-semibold text-amber-900">
+                      Warning: This invoice number has already been used on another request
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-amber-900/90">
+                      This invoice number is already on request{" "}
+                      <span className="font-semibold">
+                        {duplicateInvoiceRequest.requestReferenceNumber}
+                      </span>
+                      . Please verify this before proceeding.
+                    </p>
+                  </div>
+                ) : null}
 
                 {request.paymentProofFileUrl ? (
                   <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-100">
