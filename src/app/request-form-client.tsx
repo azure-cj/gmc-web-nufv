@@ -332,7 +332,7 @@ export default function RequestFormClient({
         <div className="overflow-hidden rounded-t-[2rem] border-b border-slate-200 bg-white leading-none">
           <div className="relative overflow-hidden rounded-t-[2rem]">
             <img
-              src="/images/form/bannerform.png"
+              src="/images/form/bannerform.jpg"
               alt="NU Fairview Discipline Office — Good Moral Certificate Request"
               className="block h-auto w-full"
               onError={() => setBannerImageFailed(true)}
