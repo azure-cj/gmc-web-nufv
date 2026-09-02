@@ -1,5 +1,3 @@
-import { GMC_REQUEST_ACADEMIC_YEAR_OPTIONS } from "./constants";
-
 export const DEFAULT_GMC_REQUEST_FEE_PHP = 150;
 
 export function getGmcRequestFeePhp(): number {
@@ -23,8 +21,4 @@ export function formatPhpCurrency(amount: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
-}
-
-export function getGmcRequestAcademicYearOptions(): readonly string[] {
-  return GMC_REQUEST_ACADEMIC_YEAR_OPTIONS;
 }

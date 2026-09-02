@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getStorageService } from "@/lib/storage";
 import { submitGmcRequest } from "@/server/services/gmc-request-intake-service";
 import { validateGmcRequestSubmission } from "@/lib/gmc-request";
+import { getCurrentAcademicYear, getCurrentTerm } from "@/lib/system-settings";
 
 export const runtime = "nodejs";
 
@@ -23,7 +24,11 @@ function getFormFile(formData: FormData, key: string): File | null {
 
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
+    const [formData, currentAcademicYear, currentTerm] = await Promise.all([
+      request.formData(),
+      getCurrentAcademicYear(),
+      getCurrentTerm(),
+    ]);
 
     const validation = await validateGmcRequestSubmission({
       studentId: getFormText(formData, "studentId"),
@@ -32,8 +37,8 @@ export async function POST(request: Request) {
       middleInitial: getFormText(formData, "middleInitial"),
       lastName: getFormText(formData, "lastName"),
       courseProgram: getFormText(formData, "courseProgram"),
-      academicYear: getFormText(formData, "academicYear"),
-      term: getFormText(formData, "term"),
+      academicYear: currentAcademicYear,
+      term: currentTerm,
       purposeOfRequest: getFormText(formData, "purposeOfRequest"),
       email: getFormText(formData, "email"),
       paymentProofFile: getFormFile(formData, "paymentProofFile"),

@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
 import {
-  GMC_REQUEST_ACADEMIC_YEAR_OPTIONS,
+  GMC_REQUEST_COURSE_PROGRAM_OPTIONS,
   GMC_REQUEST_PAYMENT_PROOF_ALLOWED_EXTENSIONS,
   GMC_REQUEST_PAYMENT_PROOF_ALLOWED_MIME_TYPES,
   GMC_REQUEST_PURPOSE_OPTIONS,
-  GMC_REQUEST_TERM_OPTIONS,
   GMC_REQUEST_TITLE_PREFIX_OPTIONS,
   type GmcRequestFieldErrors,
   validateGmcRequestSubmission,
@@ -15,6 +14,8 @@ import {
 
 interface RequestFormClientProps {
   feeAmountPhp?: number;
+  defaultAcademicYear?: string;
+  defaultTerm?: string;
 }
 
 interface RequestFormState {
@@ -40,20 +41,25 @@ interface SubmissionResult {
   acknowledgmentEmailSent: boolean;
 }
 
-const INITIAL_FORM_STATE: RequestFormState = {
-  studentId: "",
-  titlePrefix: "",
-  firstName: "",
-  middleInitial: "",
-  lastName: "",
-  courseProgram: "",
-  academicYear: "",
-  term: "",
-  purposeOfRequest: "",
-  email: "",
-  paymentProofFile: null,
-  accuracyCertified: false,
-};
+function buildInitialFormState(
+  defaultAcademicYear: string,
+  defaultTerm: string,
+): RequestFormState {
+  return {
+    studentId: "",
+    titlePrefix: "",
+    firstName: "",
+    middleInitial: "",
+    lastName: "",
+    courseProgram: "",
+    academicYear: defaultAcademicYear,
+    term: defaultTerm,
+    purposeOfRequest: "",
+    email: "",
+    paymentProofFile: null,
+    accuracyCertified: false,
+  };
+}
 
 const PAYMENT_PROOF_ACCEPT = [
   ...GMC_REQUEST_PAYMENT_PROOF_ALLOWED_MIME_TYPES,
@@ -104,8 +110,12 @@ function formatSubmittedDate(submittedAt: string): string {
 
 export default function RequestFormClient({
   feeAmountPhp,
+  defaultAcademicYear = "2026-2027",
+  defaultTerm = "Term 1",
 }: RequestFormClientProps) {
-  const [values, setValues] = useState<RequestFormState>(INITIAL_FORM_STATE);
+  const [values, setValues] = useState<RequestFormState>(
+    buildInitialFormState(defaultAcademicYear, defaultTerm),
+  );
   const [errors, setErrors] = useState<GmcRequestFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -131,7 +141,7 @@ export default function RequestFormClient({
   };
 
   const clearFormState = () => {
-    setValues(INITIAL_FORM_STATE);
+    setValues(buildInitialFormState(defaultAcademicYear, defaultTerm));
     setErrors({});
     setFormError(null);
     if (fileInputRef.current) {
@@ -245,16 +255,22 @@ export default function RequestFormClient({
             </p>
             <p className="mt-3 text-sm leading-6 text-emerald-900/80">
               We have recorded your submission for {submission.studentName || "the student"}.
-              {submission.acknowledgmentEmailSent
-                ? ` An acknowledgment email was sent to ${submission.studentEmail}.`
-                : " The acknowledgment email is pending delivery."}
+              Save your reference number below — you can check your request status anytime using
+              the{" "}
+              <Link
+                href={`/track-request?referenceNumber=${encodeURIComponent(submission.requestReferenceNumber)}&email=${encodeURIComponent(submission.studentEmail)}`}
+                className="font-semibold text-emerald-950 underline decoration-emerald-700/60 underline-offset-2 transition hover:decoration-emerald-950"
+              >
+                Track Request Status
+              </Link>{" "}
+              page.
             </p>
             <p className="mt-2 text-sm text-emerald-900/70">
               Submitted on {formatSubmittedDate(submission.submittedAt)}.
             </p>
           </div>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={resetForm}
@@ -262,9 +278,12 @@ export default function RequestFormClient({
             >
               Submit Another Request
             </button>
-            <p className="text-sm leading-6 text-slate-600">
-              Keep this reference number for follow-up with the Discipline Office.
-            </p>
+            <Link
+              href={`/track-request?referenceNumber=${encodeURIComponent(submission.requestReferenceNumber)}&email=${encodeURIComponent(submission.studentEmail)}`}
+              className="inline-flex items-center justify-center rounded-full border border-emerald-300 bg-emerald-100/80 px-5 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-200 shadow-sm"
+            >
+              Track Request Status
+            </Link>
           </div>
         </div>
       </section>
@@ -457,17 +476,24 @@ export default function RequestFormClient({
                 <label htmlFor="courseProgram" className="text-sm font-medium text-slate-800">
                   Course / Program
                 </label>
-                <input
+                <select
                   id="courseProgram"
                   name="courseProgram"
-                  type="text"
-                  placeholder="e.g. BS Information Technology"
                   value={values.courseProgram}
                   onChange={(event) => updateField("courseProgram", event.target.value)}
                   className={fieldClassName(Boolean(errors.courseProgram))}
                   aria-invalid={Boolean(errors.courseProgram)}
                   aria-describedby={errors.courseProgram ? "courseProgram-error" : undefined}
-                />
+                >
+                  <option value="" disabled>
+                    Select course / program
+                  </option>
+                  {GMC_REQUEST_COURSE_PROGRAM_OPTIONS.map((program) => (
+                    <option key={program} value={program}>
+                      {program}
+                    </option>
+                  ))}
+                </select>
                 {errors.courseProgram ? (
                   <p id="courseProgram-error" className="mt-2 text-sm text-rose-700">
                     {errors.courseProgram}
@@ -487,24 +513,17 @@ export default function RequestFormClient({
                 <label htmlFor="academicYear" className="text-sm font-medium text-slate-800">
                   Academic Year
                 </label>
-                <select
+                <input
                   id="academicYear"
                   name="academicYear"
+                  type="text"
                   value={values.academicYear}
-                  onChange={(event) => updateField("academicYear", event.target.value)}
-                  className={fieldClassName(Boolean(errors.academicYear))}
-                  aria-invalid={Boolean(errors.academicYear)}
-                  aria-describedby={errors.academicYear ? "academicYear-error" : undefined}
-                >
-                  <option value="" disabled>
-                    Select academic year
-                  </option>
-                  {GMC_REQUEST_ACADEMIC_YEAR_OPTIONS.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
+                  readOnly
+                  disabled
+                  tabIndex={-1}
+                  aria-readonly="true"
+                  className={`${fieldClassName(false)} cursor-not-allowed bg-slate-100 text-slate-500`}
+                />
                 {errors.academicYear ? (
                   <p id="academicYear-error" className="mt-2 text-sm text-rose-700">
                     {errors.academicYear}
@@ -516,24 +535,17 @@ export default function RequestFormClient({
                 <label htmlFor="term" className="text-sm font-medium text-slate-800">
                   Term
                 </label>
-                <select
+                <input
                   id="term"
                   name="term"
+                  type="text"
                   value={values.term}
-                  onChange={(event) => updateField("term", event.target.value)}
-                  className={fieldClassName(Boolean(errors.term))}
-                  aria-invalid={Boolean(errors.term)}
-                  aria-describedby={errors.term ? "term-error" : undefined}
-                >
-                  <option value="" disabled>
-                    Select term
-                  </option>
-                  {GMC_REQUEST_TERM_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  readOnly
+                  disabled
+                  tabIndex={-1}
+                  aria-readonly="true"
+                  className={`${fieldClassName(false)} cursor-not-allowed bg-slate-100 text-slate-500`}
+                />
                 {errors.term ? (
                   <p id="term-error" className="mt-2 text-sm text-rose-700">
                     {errors.term}
@@ -589,7 +601,7 @@ export default function RequestFormClient({
                   aria-describedby={errors.email ? "email-error" : "email-help"}
                 />
                 <p id="email-help" className="mt-2 text-sm text-slate-600">
-                  We will send updates regarding your request to this email.
+                  Enter your email address. This will be used alongside your reference number to verify your identity when checking your status.
                 </p>
                 {errors.email ? (
                   <p id="email-error" className="mt-2 text-sm text-rose-700">
@@ -673,8 +685,14 @@ export default function RequestFormClient({
               {isSubmitting ? "Submitting..." : "Submit Request"}
             </button>
             <p className="mt-4 text-sm leading-6 text-slate-600">
-              Your request will be reviewed by the Discipline Office. You will be notified via
-              email.
+              Your request will be reviewed by the Discipline Office. Use your reference number to track your status at{" "}
+              <Link
+                href="/track-request"
+                className="font-semibold text-[#102040] underline decoration-[#102040]/40 underline-offset-2 transition hover:decoration-[#102040]"
+              >
+                /track-request
+              </Link>
+              .
             </p>
           </div>
         </fieldset>

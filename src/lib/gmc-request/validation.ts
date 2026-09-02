@@ -1,12 +1,10 @@
 import {
-  GMC_REQUEST_ACADEMIC_YEAR_OPTIONS,
+  GMC_REQUEST_COURSE_PROGRAM_VALUES,
   GMC_REQUEST_PAYMENT_PROOF_MAX_BYTES,
   GMC_REQUEST_PURPOSE_VALUES,
   GMC_REQUEST_TITLE_PREFIX_VALUES,
-  type GmcRequestAcademicYearValue,
+  type GmcRequestCourseProgramValue,
   type GmcRequestPurposeValue,
-  GMC_REQUEST_TERM_VALUES,
-  type GmcRequestTermValue,
   type GmcRequestTitlePrefixValue,
 } from "./constants";
 
@@ -47,9 +45,9 @@ export interface GmcRequestSubmissionValues {
   firstName: string;
   middleInitial: string | null;
   lastName: string;
-  courseProgram: string;
-  academicYear: GmcRequestAcademicYearValue;
-  term: GmcRequestTermValue;
+  courseProgram: GmcRequestCourseProgramValue;
+  academicYear: string;
+  term: string;
   purposeOfRequest: GmcRequestPurposeValue;
   email: string;
   paymentProofFile: File;
@@ -176,22 +174,20 @@ export async function validateGmcRequestSubmission(
 
   if (!courseProgram) {
     fieldErrors.courseProgram = "Course / program is required.";
+  } else if (
+    !GMC_REQUEST_COURSE_PROGRAM_VALUES.includes(
+      courseProgram as GmcRequestCourseProgramValue,
+    )
+  ) {
+    fieldErrors.courseProgram = "Select a valid course / program.";
   }
 
   if (!academicYear) {
     fieldErrors.academicYear = "Academic year is required.";
-  } else if (
-    !GMC_REQUEST_ACADEMIC_YEAR_OPTIONS.includes(
-      academicYear as GmcRequestAcademicYearValue,
-    )
-  ) {
-    fieldErrors.academicYear = "Select a valid academic year.";
   }
 
   if (!term) {
     fieldErrors.term = "Term is required.";
-  } else if (!GMC_REQUEST_TERM_VALUES.includes(term as GmcRequestTermValue)) {
-    fieldErrors.term = "Select a valid term.";
   }
 
   if (!purposeOfRequest) {
@@ -235,9 +231,9 @@ export async function validateGmcRequestSubmission(
       firstName,
       middleInitial: middleInitial ? middleInitial.toUpperCase() : null,
       lastName,
-      courseProgram,
-      academicYear: academicYear as GmcRequestAcademicYearValue,
-      term: term as GmcRequestTermValue,
+      courseProgram: courseProgram as GmcRequestCourseProgramValue,
+      academicYear,
+      term,
       purposeOfRequest: purposeOfRequest as GmcRequestPurposeValue,
       email,
       paymentProofFile: input.paymentProofFile,

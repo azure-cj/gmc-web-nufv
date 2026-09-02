@@ -31,6 +31,12 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
+function formatTermDisplay(term: string): string {
+  const trimmed = term.trim();
+  if (!trimmed) return "";
+  return /^Term\s/i.test(trimmed) ? trimmed : `Term ${trimmed}`;
+}
+
 export function buildCertificateTitlePrefixLine(
   studentTitlePrefix: string | null,
   studentFullName: string,
@@ -225,7 +231,7 @@ export function buildGoodMoralCertificateHtml(
       </div>
 
       <p class="paragraph">
-        This is to certify that ${escapeHtml(input.studentFullName)}, with student number ${escapeHtml(input.studentId)}, was a student of ${escapeHtml(input.courseProgram)} at NU Fairview for Term ${escapeHtml(input.term)}, Academic Year ${escapeHtml(input.academicYear)}.
+        This is to certify that ${escapeHtml(input.studentFullName)}, with student number ${escapeHtml(input.studentId)}, was a student of ${escapeHtml(input.courseProgram)} at NU Fairview for ${escapeHtml(formatTermDisplay(input.term))}, Academic Year ${escapeHtml(input.academicYear)}.
       </p>
 
       <p class="paragraph">

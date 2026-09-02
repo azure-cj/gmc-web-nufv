@@ -168,3 +168,9 @@ model NumberingCounter {
 
   @@unique([kind, period])
 }
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

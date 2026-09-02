@@ -14,35 +14,29 @@ export const GMC_REQUEST_PURPOSE_VALUES = GMC_REQUEST_PURPOSE_OPTIONS.map(
   (option) => option.value,
 ) as readonly GmcRequestPurposeValue[];
 
-export const GMC_REQUEST_ACADEMIC_YEAR_OPTIONS = [
-  "2024-2025",
-  "2025-2026",
-  "2026-2027",
-  "2027-2028",
-] as const;
-
-export type GmcRequestAcademicYearValue =
-  (typeof GMC_REQUEST_ACADEMIC_YEAR_OPTIONS)[number];
-
-export const GMC_REQUEST_TERM_OPTIONS = [
-  { value: "1", label: "Term 1" },
-  { value: "2", label: "Term 2" },
-  { value: "3", label: "Term 3" },
-  { value: "4", label: "Term 4" },
-  { value: "5", label: "Term 5" },
-] as const;
-
-export type GmcRequestTermValue =
-  (typeof GMC_REQUEST_TERM_OPTIONS)[number]["value"];
-
-export const GMC_REQUEST_TERM_VALUES = GMC_REQUEST_TERM_OPTIONS.map(
-  (option) => option.value,
-) as readonly GmcRequestTermValue[];
-
 export const GMC_REQUEST_TITLE_PREFIX_OPTIONS = [
   { value: "Mr.", label: "Mr." },
   { value: "Mrs.", label: "Mrs." },
 ] as const;
+
+export const GMC_REQUEST_COURSE_PROGRAM_OPTIONS = [
+  "Bachelor of Arts in Communication",
+  "Bachelor of Science in Accountancy",
+  "Bachelor of Science in Architecture",
+  "Bachelor of Science in Business Administration Major in Financial Management",
+  "Bachelor of Science in Business Administration Major in Marketing Management",
+  "Bachelor of Science in Civil Engineering",
+  "Bachelor of Science in Computer Engineering",
+  "Bachelor of Science in Hospitality Management",
+  "Bachelor of Science in Information Technology",
+  "Bachelor of Science in Psychology",
+  "Bachelor of Science in Tourism Management",
+] as const;
+
+export type GmcRequestCourseProgramValue =
+  (typeof GMC_REQUEST_COURSE_PROGRAM_OPTIONS)[number];
+
+export const GMC_REQUEST_COURSE_PROGRAM_VALUES = GMC_REQUEST_COURSE_PROGRAM_OPTIONS;
 
 export type GmcRequestTitlePrefixValue =
   (typeof GMC_REQUEST_TITLE_PREFIX_OPTIONS)[number]["value"];
