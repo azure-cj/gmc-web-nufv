@@ -707,7 +707,8 @@ export default function StaffRequestProcessModal({
               </p>
             ) : (
               <p className="mt-2 text-sm text-slate-500">
-                Record the official receipt number from the payment record.
+                The student-entered invoice / receipt number is pre-filled below.
+                Confirm it against the payment record or correct it if needed.
               </p>
             )}
           </div>

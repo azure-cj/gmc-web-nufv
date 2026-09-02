@@ -45,13 +45,4 @@ export const GMC_REQUEST_TITLE_PREFIX_VALUES = GMC_REQUEST_TITLE_PREFIX_OPTIONS.
   (option) => option.value,
 ) as readonly GmcRequestTitlePrefixValue[];
 
-export const GMC_REQUEST_PAYMENT_PROOF_MAX_BYTES = 5 * 1024 * 1024;
-
-export const GMC_REQUEST_PAYMENT_PROOF_ALLOWED_MIME_TYPES = [
-  "image/jpeg",
-] as const;
-
-export const GMC_REQUEST_PAYMENT_PROOF_ALLOWED_EXTENSIONS = [
-  ".jpg",
-  ".jpeg",
-] as const;
+export const GMC_REQUEST_PAYMENT_RECEIPT_MAX_LENGTH = 64;

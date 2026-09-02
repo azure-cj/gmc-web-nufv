@@ -271,12 +271,27 @@ export default async function StaffRequestReviewPage({
           })}
 
           {detailCard({
-            title: "Uploaded Payment Proof",
+            title: "Payment Information",
             children: (
               <div className="space-y-4">
-                <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-100">
-                  {request.paymentProofFileUrl ? (
-                    proofViewerKind === "image" ? (
+                <div className="rounded-3xl border border-slate-200 bg-white p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+                    Student-Entered Invoice / Receipt Number
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-slate-900">
+                    {request.officialReceiptNumber || "Not provided"}
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    This is the invoice / receipt number the student typed in when
+                    submitting their request. Verify it against the payment record
+                    and record any correction as the official receipt number during
+                    review.
+                  </p>
+                </div>
+
+                {request.paymentProofFileUrl ? (
+                  <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-100">
+                    {proofViewerKind === "image" ? (
                       <img
                         src={proofFileUrl}
                         alt={`Payment proof for ${request.requestReferenceNumber}`}
@@ -291,7 +306,7 @@ export default async function StaffRequestReviewPage({
                     ) : (
                       <div className="flex min-h-80 flex-col items-start justify-center gap-3 p-6">
                         <p className="text-sm text-slate-600">
-                          This proof file can be opened directly in a new tab.
+                          Legacy proof file can be opened directly in a new tab.
                         </p>
                         <a
                           href={proofFileUrl}
@@ -302,23 +317,14 @@ export default async function StaffRequestReviewPage({
                           Open proof file
                         </a>
                       </div>
-                    )
-                  ) : (
-                    <div className="flex min-h-48 flex-col items-center justify-center gap-2 p-6 text-center">
-                      <span className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-3.5 py-1.5 text-xs font-semibold text-amber-800">
-                        Purged by Retention Policy
-                      </span>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Payment proof file was purged 30 days post-release per automated retention policy.
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <p className="text-sm text-slate-500">
-                  {request.paymentProofFileUrl
-                    ? "File is stored securely and can be viewed through the secure preview above."
-                    : "Payment proof file has been purged; official receipt number and verification status remain recorded in database."}
-                </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
+                    No payment proof image is attached for this request. Students now
+                    enter the invoice / receipt number directly instead of uploading an image.
+                  </div>
+                )}
               </div>
             ),
           })}

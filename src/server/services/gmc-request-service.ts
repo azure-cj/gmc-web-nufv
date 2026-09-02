@@ -15,7 +15,8 @@ export interface CreateGmcRequestInput {
   titlePrefix?: string | null;
   term: string;
   purposeOfRequest: PurposeOfRequest;
-  paymentProofFileUrl: string;
+  paymentProofFileUrl?: string | null;
+  officialReceiptNumber?: string | null;
   submittedAt?: Date;
   actorId?: string | null;
 }
@@ -88,7 +89,8 @@ export async function createGmcRequest(
           term: input.term,
           studentEmail: student.email,
           purposeOfRequest: input.purposeOfRequest,
-          paymentProofFileUrl: input.paymentProofFileUrl,
+          officialReceiptNumber: input.officialReceiptNumber ?? null,
+          paymentProofFileUrl: input.paymentProofFileUrl ?? null,
         dateSubmitted: submittedAt,
       },
     });

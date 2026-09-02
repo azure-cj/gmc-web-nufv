@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import {
   GMC_REQUEST_COURSE_PROGRAM_OPTIONS,
-  GMC_REQUEST_PAYMENT_PROOF_ALLOWED_EXTENSIONS,
-  GMC_REQUEST_PAYMENT_PROOF_ALLOWED_MIME_TYPES,
+  GMC_REQUEST_PAYMENT_RECEIPT_MAX_LENGTH,
   GMC_REQUEST_PURPOSE_OPTIONS,
   GMC_REQUEST_TITLE_PREFIX_OPTIONS,
   type GmcRequestFieldErrors,
@@ -29,7 +28,7 @@ interface RequestFormState {
   term: string;
   purposeOfRequest: string;
   email: string;
-  paymentProofFile: File | null;
+  paymentReceiptNumber: string;
   accuracyCertified: boolean;
 }
 
@@ -56,15 +55,10 @@ function buildInitialFormState(
     term: defaultTerm,
     purposeOfRequest: "",
     email: "",
-    paymentProofFile: null,
+    paymentReceiptNumber: "",
     accuracyCertified: false,
   };
 }
-
-const PAYMENT_PROOF_ACCEPT = [
-  ...GMC_REQUEST_PAYMENT_PROOF_ALLOWED_MIME_TYPES,
-  ...GMC_REQUEST_PAYMENT_PROOF_ALLOWED_EXTENSIONS,
-].join(",");
 
 const inputBaseClass =
   "mt-2 w-full rounded-2xl border border-[#2C4368]/25 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-[#102040] focus:ring-4 focus:ring-[#102040]/15";
@@ -92,11 +86,8 @@ function formDataFromValues(values: RequestFormState): FormData {
   formData.set("term", values.term);
   formData.set("purposeOfRequest", values.purposeOfRequest);
   formData.set("email", values.email);
+  formData.set("paymentReceiptNumber", values.paymentReceiptNumber);
   formData.set("accuracyCertified", String(values.accuracyCertified));
-
-  if (values.paymentProofFile) {
-    formData.set("paymentProofFile", values.paymentProofFile);
-  }
 
   return formData;
 }
@@ -121,7 +112,6 @@ export default function RequestFormClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submission, setSubmission] = useState<SubmissionResult | null>(null);
   const [bannerImageFailed, setBannerImageFailed] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const updateField = <K extends keyof RequestFormState>(
     key: K,
@@ -144,9 +134,6 @@ export default function RequestFormClient({
     setValues(buildInitialFormState(defaultAcademicYear, defaultTerm));
     setErrors({});
     setFormError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
   const resetForm = () => {
@@ -181,7 +168,7 @@ export default function RequestFormClient({
           term: validation.values.term,
           purposeOfRequest: validation.values.purposeOfRequest,
           email: validation.values.email,
-          paymentProofFile: validation.values.paymentProofFile,
+          paymentReceiptNumber: validation.values.paymentReceiptNumber,
           accuracyCertified: validation.values.accuracyCertified,
         }),
       });
@@ -613,40 +600,41 @@ export default function RequestFormClient({
               <div className="md:col-span-2 rounded-3xl border border-dashed border-[#2C4368]/30 bg-white px-5 py-5">
                 <div>
                   <label
-                    htmlFor="paymentProofFile"
+                    htmlFor="paymentReceiptNumber"
                     className="text-sm font-medium text-slate-800"
                   >
-                    Proof of Payment Upload
+                    Invoice / Receipt Number
                   </label>
                   <p className="mt-1 text-xs text-slate-500">
-                    Accepted format: JPG. Maximum file size: 5 MB.
+                    No file upload needed.
                   </p>
                 </div>
 
                 <input
-                  id="paymentProofFile"
-                  name="paymentProofFile"
-                  ref={fileInputRef}
-                  type="file"
-                  accept={PAYMENT_PROOF_ACCEPT}
+                  id="paymentReceiptNumber"
+                  name="paymentReceiptNumber"
+                  type="text"
+                  maxLength={GMC_REQUEST_PAYMENT_RECEIPT_MAX_LENGTH}
+                  autoComplete="off"
+                  value={values.paymentReceiptNumber}
                   onChange={(event) =>
-                    updateField(
-                      "paymentProofFile",
-                      event.target.files?.[0] ?? null,
-                    )
+                    updateField("paymentReceiptNumber", event.target.value)
                   }
-                  className="mt-4 block w-full rounded-2xl border border-[#2C4368]/25 bg-slate-50 px-4 py-3 text-sm text-slate-700 shadow-sm file:mr-4 file:rounded-full file:border-0 file:bg-[#102040] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#2C4368]"
-                  aria-invalid={Boolean(errors.paymentProofFile)}
+                  placeholder="e.g. INV01-000044218"
+                  className={fieldClassName(Boolean(errors.paymentReceiptNumber))}
+                  aria-invalid={Boolean(errors.paymentReceiptNumber)}
                   aria-describedby={
-                    errors.paymentProofFile ? "paymentProofFile-error" : "paymentProofFile-help"
+                    errors.paymentReceiptNumber
+                      ? "paymentReceiptNumber-error"
+                      : "paymentReceiptNumber-help"
                   }
                 />
-                <p id="paymentProofFile-help" className="mt-2 text-xs leading-5 text-slate-600">
-                  Please upload a clear photo of your receipt. Make sure all text, especially the amount, date, and receipt number, is fully visible and in focus. Blurry, cropped, or partial images may cause delays or rejection of your request.
+                <p id="paymentReceiptNumber-help" className="mt-2 text-xs leading-5 text-slate-600">
+                  Enter the invoice or receipt number exactly as printed on your payment receipt.
                 </p>
-                {errors.paymentProofFile ? (
-                  <p id="paymentProofFile-error" className="mt-2 text-sm text-rose-700">
-                    {errors.paymentProofFile}
+                {errors.paymentReceiptNumber ? (
+                  <p id="paymentReceiptNumber-error" className="mt-2 text-sm text-rose-700">
+                    {errors.paymentReceiptNumber}
                   </p>
                 ) : null}
               </div>

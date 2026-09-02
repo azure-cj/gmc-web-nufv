@@ -122,7 +122,7 @@ async function main() {
     titlePrefix: "Mr.",
     term: "1",
     purposeOfRequest: PurposeOfRequest.SCHOLARSHIP,
-    paymentProofFileUrl: "/uploads/sample-payment-proofs/juan-scholarship.pdf",
+    officialReceiptNumber: "INV01-000044214",
     submittedAt: june10,
     actorId: null,
   });
@@ -132,7 +132,7 @@ async function main() {
     titlePrefix: "Mrs.",
     term: "2",
     purposeOfRequest: PurposeOfRequest.EMPLOYMENT,
-    paymentProofFileUrl: "/uploads/sample-payment-proofs/maria-employment.pdf",
+    officialReceiptNumber: "INV01-000044218",
     submittedAt: june12,
     actorId: null,
   });
@@ -142,7 +142,7 @@ async function main() {
     titlePrefix: "Mr.",
     term: "3",
     purposeOfRequest: PurposeOfRequest.INTERNSHIP,
-    paymentProofFileUrl: "/uploads/sample-payment-proofs/enzo-internship.pdf",
+    officialReceiptNumber: "INV01-000044219",
     submittedAt: july02,
     actorId: null,
   });
@@ -152,7 +152,7 @@ async function main() {
     titlePrefix: "Mrs.",
     term: "4",
     purposeOfRequest: PurposeOfRequest.BOARD_EXAM,
-    paymentProofFileUrl: "/uploads/sample-payment-proofs/lara-board-exam.pdf",
+    officialReceiptNumber: "INV01-000044220",
     submittedAt: july03,
     actorId: null,
   });
@@ -162,7 +162,7 @@ async function main() {
     titlePrefix: "Mr.",
     term: "5",
     purposeOfRequest: PurposeOfRequest.TRANSFER_OUT,
-    paymentProofFileUrl: "/uploads/sample-payment-proofs/noah-transfer-out.pdf",
+    officialReceiptNumber: "INV01-000044221",
     submittedAt: july04,
     actorId: null,
   });

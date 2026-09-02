@@ -244,7 +244,8 @@ export default function StaffRequestReviewClient({
               </p>
             ) : (
               <p className="mt-2 text-sm text-slate-500">
-                Record the official receipt number from the payment record.
+                Confirm the student-entered invoice / receipt number. Correct it if it does
+                not match the payment record.
               </p>
             )}
           </label>
@@ -295,8 +296,8 @@ export default function StaffRequestReviewClient({
 
       <div className="mt-6 rounded-3xl border border-[#E2E8F0] bg-slate-50 p-5">
         <p className="text-sm text-slate-600">
-          Use the uploaded proof file viewer and the student record comparison above before
-          committing the review.
+          Confirm the student-entered invoice / receipt number and review the payment
+          verification status before committing the review.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <button
