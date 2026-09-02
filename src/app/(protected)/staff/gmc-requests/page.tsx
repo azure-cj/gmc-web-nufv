@@ -25,7 +25,7 @@ export default async function StaffGmcRequestsPage({
   return (
     <StaffRequestsWorkspace
       title="GMC Requests"
-      description="Search and review incoming Good Moral Certificate requests. Pending requests can be approved, returned, or rejected from the review screen."
+      description="Search and review incoming Good Moral Certificate requests. Pending requests are processed through the guided 3-step review flow."
       basePath="/staff/gmc-requests"
       detailBasePath="/staff/gmc-requests"
       data={data}

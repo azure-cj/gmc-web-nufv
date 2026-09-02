@@ -263,6 +263,7 @@ export async function POST(
             term: currentRequest.term ?? null,
             purposeOfRequest: currentRequest.purposeOfRequest,
             officialReceiptNumber: currentRequest.officialReceiptNumber ?? null,
+            hasViolationRecord: currentRequest.hasViolationRecord,
           },
         );
 

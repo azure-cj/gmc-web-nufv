@@ -17,6 +17,7 @@ export interface GoodMoralCertificateTemplateInput {
   studentTitlePrefix: string | null;
   purposeOfRequest: PurposeOfRequest;
   officialReceiptNumber: string | null;
+  hasViolationRecord: boolean;
   dateOfIssuance: Date;
   authorizedSignatory: string;
   officeDesignation: string;
@@ -235,7 +236,9 @@ export function buildGoodMoralCertificateHtml(
       </p>
 
       <p class="paragraph">
-        It is further certified that ${escapeHtml(titlePrefix)} is of good moral character and has no derogatory records, nor has he been subjected to any disciplinary action while a student at university.
+        It is further certified that ${escapeHtml(titlePrefix)} ${input.hasViolationRecord
+          ? `has a derogatory record and/or has been subjected to disciplinary action while a student at university.`
+          : `is of good moral character and has no derogatory records, nor has he been subjected to any disciplinary action while a student at university.`}
       </p>
 
       <div class="spacer-before-certified-by"></div>

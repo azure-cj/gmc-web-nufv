@@ -49,6 +49,7 @@ export async function regenerateCertificatePdfOnDemand(fileReference: string): P
       studentTitlePrefix: certificate.gmcRequest.studentTitlePrefix ?? null,
       purposeOfRequest: certificate.gmcRequest.purposeOfRequest,
       officialReceiptNumber: certificate.gmcRequest.officialReceiptNumber ?? null,
+      hasViolationRecord: certificate.gmcRequest.hasViolationRecord,
       dateOfIssuance: certificate.dateOfIssuance,
       authorizedSignatory:
         certificate.authorizedSignatory ||

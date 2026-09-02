@@ -37,6 +37,7 @@ async function generateAndStoreCertificatePdf(
       term: request.term ?? null,
       purposeOfRequest: request.purposeOfRequest,
       officialReceiptNumber: request.officialReceiptNumber ?? null,
+      hasViolationRecord: request.hasViolationRecord,
     },
   );
   const pdfBuffer = await renderCertificateHtmlToPdfBuffer(certificateHtml);
@@ -105,6 +106,7 @@ export async function generateCertificatePdfForRequest(
               purposeOfRequest: currentRequest.purposeOfRequest,
               officialReceiptNumber:
                 currentRequest.officialReceiptNumber ?? null,
+              hasViolationRecord: currentRequest.hasViolationRecord,
             },
           ),
         },

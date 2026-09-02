@@ -70,6 +70,7 @@ async function createCertificateFromLoadedRequest(
     studentTitlePrefix: request.studentTitlePrefix ?? null,
     purposeOfRequest: request.purposeOfRequest,
     officialReceiptNumber: request.officialReceiptNumber ?? null,
+    hasViolationRecord: request.hasViolationRecord,
     dateOfIssuance,
     authorizedSignatory,
     officeDesignation,

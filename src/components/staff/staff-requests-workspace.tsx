@@ -16,6 +16,7 @@ import {
   type StaffDashboardFilters,
 } from "@/server/services/staff-dashboard-service";
 import StaffDashboardOverview from "@/components/staff/staff-dashboard-overview";
+import StaffRequestProcessModal from "@/components/staff/staff-request-process-modal";
 import type { StaffDashboardOverviewData } from "@/server/services/staff-dashboard-overview-service";
 
 interface StaffRequestsWorkspaceProps {
@@ -343,41 +344,10 @@ export default function StaffRequestsWorkspace({
                       </td>
                       <td className="px-6 py-5 align-top sm:px-8">
                         {request.status === "PENDING" ? (
-                          <div className="flex flex-wrap gap-2">
-                            <Link
-                              href={buildRequestActionHref(
-                                detailBasePath,
-                                request.id,
-                                "approve",
-                                currentReturnTo,
-                              )}
-                              className="rounded-full border border-[#34B1AA]/40 bg-[#34B1AA]/15 px-3 py-1.5 text-xs font-semibold text-[#1E746F] transition hover:bg-[#34B1AA]/25"
-                            >
-                              Approve
-                            </Link>
-                            <Link
-                              href={buildRequestActionHref(
-                                detailBasePath,
-                                request.id,
-                                "return",
-                                currentReturnTo,
-                              )}
-                              className="rounded-full border border-[#E05252]/40 bg-[#E05252]/15 px-3 py-1.5 text-xs font-semibold text-[#9B2C2C] transition hover:bg-[#E05252]/25"
-                            >
-                              Return
-                            </Link>
-                            <Link
-                              href={buildRequestActionHref(
-                                detailBasePath,
-                                request.id,
-                                "reject",
-                                currentReturnTo,
-                              )}
-                              className="rounded-full border border-[#E05252]/40 bg-[#E05252]/15 px-3 py-1.5 text-xs font-semibold text-[#9B2C2C] transition hover:bg-[#E05252]/25"
-                            >
-                              Reject
-                            </Link>
-                          </div>
+                          <StaffRequestProcessModal
+                            requestId={request.id}
+                            requestReferenceNumber={request.requestReferenceNumber}
+                          />
                         ) : request.status === "GENERATED" ||
                           request.status === "DELIVERY_FAILED" ? (
                           <Link

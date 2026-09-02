@@ -94,6 +94,7 @@ function buildCertificatePreviewHtml(
     term: string | null;
     purposeOfRequest: PurposeOfRequest;
     officialReceiptNumber: string | null;
+    hasViolationRecord: boolean;
   },
 ): string {
   return buildGoodMoralCertificateHtml({
@@ -106,6 +107,7 @@ function buildCertificatePreviewHtml(
     studentTitlePrefix: context.studentTitlePrefix,
     purposeOfRequest: context.purposeOfRequest,
     officialReceiptNumber: context.officialReceiptNumber,
+    hasViolationRecord: context.hasViolationRecord,
     dateOfIssuance,
     authorizedSignatory:
       values.authorizedSignatory || DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY,
@@ -201,6 +203,7 @@ export function buildCertificateReviewDraft(
               term: request.term ?? null,
               purposeOfRequest: request.purposeOfRequest,
               officialReceiptNumber: request.officialReceiptNumber ?? null,
+              hasViolationRecord: request.hasViolationRecord,
             },
           ),
           dateOfIssuance: dateOfIssuance.toISOString(),
@@ -220,6 +223,7 @@ export function buildCertificatePreviewHtmlFromEditableValues(
     term: string | null;
     purposeOfRequest: PurposeOfRequest;
     officialReceiptNumber: string | null;
+    hasViolationRecord: boolean;
   },
 ): string {
   return buildCertificatePreviewHtml(certificateNumber, values, dateOfIssuance, context);
