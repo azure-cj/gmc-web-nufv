@@ -1,3 +1,4 @@
+<img width="1587" height="2245" alt="Websites" src="https://github.com/user-attachments/assets/2b2db78e-abe0-48ff-af22-393fa195c393" />
 # GMC Web System
 
 The GMC Web System is an online Good Moral Certificate request portal for the NU Fairview Discipline Office.
