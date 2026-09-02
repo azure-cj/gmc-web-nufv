@@ -10,6 +10,7 @@ import {
 } from "@/server/services/certificate-review-service";
 import { generateCertificatePdfForRequest } from "@/server/services/certificate-release-service";
 import { updateGmcRequestStatusInTransaction } from "@/server/services/gmc-request-service";
+import { STUDENT_ID_PATTERN } from "@/lib/gmc-request";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -30,8 +31,6 @@ const CERTIFICATE_PURPOSE_OPTIONS = new Set([
   "Board Exam",
   "Other",
 ]);
-
-const STUDENT_ID_PATTERN = /^\d{4}-\d{6}$/;
 
 interface CertificateReviewRequestBody {
   action?: unknown;
@@ -213,7 +212,8 @@ export async function POST(
         if (!studentIdNumber) {
           fieldErrors.studentIdNumber = "Student ID number is required.";
         } else if (!STUDENT_ID_PATTERN.test(studentIdNumber)) {
-          fieldErrors.studentIdNumber = "Use the institutional ID format 2021-123456.";
+          fieldErrors.studentIdNumber =
+            "Student ID must be in the format YEAR-NUMBER (4-digit year, hyphen, then up to 10 digits).";
         }
 
         if (!courseProgram) {

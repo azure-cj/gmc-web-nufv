@@ -59,7 +59,9 @@ export interface GmcRequestValidationResult {
   values?: GmcRequestSubmissionValues;
 }
 
-const STUDENT_ID_PATTERN = /^\d{4}-\d{6}$/;
+export const STUDENT_ID_PATTERN = /^\d{4}-\d{1,10}$/;
+export const STUDENT_ID_FORMAT_HINT =
+  "Use the format YEAR-NUMBER (4-digit year, hyphen, then up to 10 digits), e.g. 2021-123456.";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIDDLE_INITIAL_PATTERN = /^[A-Za-z]$/;
 
@@ -143,7 +145,8 @@ export async function validateGmcRequestSubmission(
   if (!studentId) {
     fieldErrors.studentId = "Student ID number is required.";
   } else if (!STUDENT_ID_PATTERN.test(studentId)) {
-    fieldErrors.studentId = "Use the institutional ID format 2021-123456.";
+    fieldErrors.studentId =
+      "Student ID must be in the format YEAR-NUMBER (4-digit year, hyphen, then up to 10 digits).";
   }
 
   if (!titlePrefix) {

@@ -358,7 +358,7 @@ export default function RequestFormClient({
                   id="studentId"
                   name="studentId"
                   type="text"
-                  placeholder="e.g. 2021-123456"
+                  placeholder="e.g. 2021-123456 (year-number, up to 10 digits)"
                   autoComplete="off"
                   value={values.studentId}
                   onChange={(event) => updateField("studentId", event.target.value)}
