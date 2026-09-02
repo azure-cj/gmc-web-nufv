@@ -5,7 +5,7 @@ import type {
 } from "@prisma/client";
 import type { EmailService } from "@/lib/email";
 import { createRequestReferenceNumber } from "@/lib/numbering";
-import type { StorageService } from "@/lib/storage";
+import type { StorageService, StoredFile } from "@/lib/storage";
 import type { GmcRequestSubmissionValues } from "@/lib/gmc-request";
 
 type DatabaseClient = PrismaClient;
@@ -27,18 +27,20 @@ export async function submitGmcRequest(
 ): Promise<SubmitGmcRequestResult> {
   const submittedAt = new Date();
 
-  const uploadedProof = await storageService.upload({
-    buffer: Buffer.from(await input.paymentProofFile.arrayBuffer()),
-    filename: input.paymentProofFile.name || "payment-proof",
-    contentType: input.paymentProofFile.type || undefined,
-    subdirectory: "gmc-request-proofs",
-  });
-
   let request: GmcRequest | null = null;
   let requestReferenceNumber = "";
   let studentName = "";
 
+  let uploadedProof: StoredFile | null = null;
+
   try {
+    uploadedProof = await storageService.upload({
+      buffer: Buffer.from(await input.paymentProofFile.arrayBuffer()),
+      filename: input.paymentProofFile.name || "payment-proof",
+      contentType: input.paymentProofFile.type || undefined,
+      subdirectory: "gmc-request-proofs",
+    });
+
     await db.$transaction(async (tx) => {
       const student = await tx.student.upsert({
         where: { studentId: input.studentId },
@@ -83,7 +85,7 @@ export async function submitGmcRequest(
           term: input.term,
           studentEmail: input.email,
           purposeOfRequest: input.purposeOfRequest as PurposeOfRequest,
-          paymentProofFileUrl: uploadedProof.url,
+          paymentProofFileUrl: uploadedProof!.url,
           status: "PENDING",
           paymentVerificationStatus: "UNVERIFIED",
           accuracyCertified: input.accuracyCertified,
@@ -102,12 +104,13 @@ export async function submitGmcRequest(
       });
     });
   } catch (error) {
-    await storageService.delete(uploadedProof.key).catch(() => undefined);
+    if (uploadedProof) {
+      await storageService.delete(uploadedProof.key).catch(() => undefined);
+    }
     throw error;
   }
 
-  if (!request) {
-    await storageService.delete(uploadedProof.key).catch(() => undefined);
+  if (!request || !uploadedProof) {
     throw new Error("Failed to create GMC request.");
   }
 
@@ -123,13 +126,13 @@ export async function submitGmcRequest(
         "Your Good Moral Certificate request has been received.",
         `Reference Number: ${requestReferenceNumber}`,
         "",
-        "The Discipline Office will review your submission and send updates to this email address.",
+        "The Discipline Office will review your submission. You can track your request status anytime using your reference number on the Track Request page.",
       ].join("\n"),
       html: [
         `<p>Hello ${studentName || input.firstName},</p>`,
         "<p>Your Good Moral Certificate request has been received.</p>",
         `<p><strong>Reference Number:</strong> ${requestReferenceNumber}</p>`,
-        "<p>The Discipline Office will review your submission and send updates to this email address.</p>",
+        "<p>The Discipline Office will review your submission. You can track your request status anytime using your reference number on the Track Request page.</p>",
       ].join(""),
     });
     acknowledgmentEmailSent = true;

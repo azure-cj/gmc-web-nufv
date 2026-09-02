@@ -619,7 +619,7 @@ export default function RequestFormClient({
                     Proof of Payment Upload
                   </label>
                   <p className="mt-1 text-xs text-slate-500">
-                    Accepted formats: JPG, PNG, PDF. Maximum file size: 5 MB.
+                    Accepted format: JPG. Maximum file size: 5 MB.
                   </p>
                 </div>
 
@@ -642,7 +642,7 @@ export default function RequestFormClient({
                   }
                 />
                 <p id="paymentProofFile-help" className="mt-2 text-xs leading-5 text-slate-600">
-                  Please upload a clear photo or scanned copy of your receipt. Make sure all text  especially the amount, date, and receipt number  is fully visible and in focus. Blurry, cropped, or partial images may cause delays or rejection of your request.
+                  Please upload a clear photo of your receipt. Make sure all text, especially the amount, date, and receipt number, is fully visible and in focus. Blurry, cropped, or partial images may cause delays or rejection of your request.
                 </p>
                 {errors.paymentProofFile ? (
                   <p id="paymentProofFile-error" className="mt-2 text-sm text-rose-700">

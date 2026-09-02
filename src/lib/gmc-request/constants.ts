@@ -49,13 +49,9 @@ export const GMC_REQUEST_PAYMENT_PROOF_MAX_BYTES = 5 * 1024 * 1024;
 
 export const GMC_REQUEST_PAYMENT_PROOF_ALLOWED_MIME_TYPES = [
   "image/jpeg",
-  "image/png",
-  "application/pdf",
 ] as const;
 
 export const GMC_REQUEST_PAYMENT_PROOF_ALLOWED_EXTENSIONS = [
   ".jpg",
   ".jpeg",
-  ".png",
-  ".pdf",
 ] as const;

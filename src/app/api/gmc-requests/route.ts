@@ -7,6 +7,7 @@ import { validateGmcRequestSubmission } from "@/lib/gmc-request";
 import { getCurrentAcademicYear, getCurrentTerm } from "@/lib/system-settings";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function getFormText(formData: FormData, key: string): string {
   const value = formData.get(key);

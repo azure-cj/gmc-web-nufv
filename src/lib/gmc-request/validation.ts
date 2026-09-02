@@ -69,20 +69,6 @@ function getFileMagicSignature(file: File): Promise<Uint8Array> {
   return file.slice(0, 8).arrayBuffer().then((buffer) => new Uint8Array(buffer));
 }
 
-function isPng(signature: Uint8Array): boolean {
-  return (
-    signature.length >= 8 &&
-    signature[0] === 0x89 &&
-    signature[1] === 0x50 &&
-    signature[2] === 0x4e &&
-    signature[3] === 0x47 &&
-    signature[4] === 0x0d &&
-    signature[5] === 0x0a &&
-    signature[6] === 0x1a &&
-    signature[7] === 0x0a
-  );
-}
-
 function isJpeg(signature: Uint8Array): boolean {
   return (
     signature.length >= 3 &&
@@ -92,20 +78,9 @@ function isJpeg(signature: Uint8Array): boolean {
   );
 }
 
-function isPdf(signature: Uint8Array): boolean {
-  return (
-    signature.length >= 5 &&
-    signature[0] === 0x25 &&
-    signature[1] === 0x50 &&
-    signature[2] === 0x44 &&
-    signature[3] === 0x46 &&
-    signature[4] === 0x2d
-  );
-}
-
 async function validatePaymentProofFile(file: File | null): Promise<string | null> {
   if (!file) {
-    return "Upload a JPG, PNG, or PDF file.";
+    return "Upload a JPG file.";
   }
 
   if (file.size <= 0) {
@@ -117,10 +92,10 @@ async function validatePaymentProofFile(file: File | null): Promise<string | nul
   }
 
   const signature = await getFileMagicSignature(file);
-  const isAllowedType = isJpeg(signature) || isPng(signature) || isPdf(signature);
+  const isAllowedType = isJpeg(signature);
 
   if (!isAllowedType) {
-    return "Only JPG, PNG, or PDF files are allowed.";
+    return "Only JPG files are allowed.";
   }
 
   return null;
