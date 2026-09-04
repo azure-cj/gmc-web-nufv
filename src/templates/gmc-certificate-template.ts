@@ -24,6 +24,12 @@ const SIGNATURE_IMAGE_LOOKUP: Record<string, string> = {
 
 const signatureImageCache = new Map<string, string | null>();
 
+export async function warmSignatureImageCache(
+  authorizedSignatory: string,
+): Promise<void> {
+  await loadSignatureImageBase64(authorizedSignatory);
+}
+
 async function loadSignatureImageBase64(
   authorizedSignatory: string,
 ): Promise<string | null> {

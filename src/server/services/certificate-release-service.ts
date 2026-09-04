@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { getStorageService } from "@/lib/storage";
 import { buildCertificatePreviewHtmlFromEditableValues, buildCertificateReviewDraft, buildCertificateReviewEditableValues, loadGeneratedCertificateReviewRequest } from "./certificate-review-service";
+import { DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY, warmSignatureImageCache } from "./certificate-template";
 import { renderCertificateHtmlToPdfBuffer } from "./certificate-pdf-service";
 import { updateGmcRequestStatusInTransaction } from "./gmc-request-service";
 
@@ -91,21 +92,24 @@ export async function generateCertificatePdfForRequest(
   try {
     const generatedPdf = await generateAndStoreCertificatePdf(currentRequest);
 
-    await db.$transaction(async (tx) => {
-      const previewHtml = await buildCertificatePreviewHtmlFromEditableValues(
-        certificate.certificateNumber,
-        buildCertificateReviewEditableValues(currentRequest),
-        certificate.dateOfIssuance,
-        {
-          studentTitlePrefix: currentRequest.studentTitlePrefix ?? null,
-          term: currentRequest.term ?? null,
-          purposeOfRequest: currentRequest.purposeOfRequest,
-          officialReceiptNumber:
-            currentRequest.officialReceiptNumber ?? null,
-          hasViolationRecord: currentRequest.hasViolationRecord,
-        },
-      );
+    await warmSignatureImageCache(
+      certificate.authorizedSignatory || DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY,
+    );
 
+    const previewHtml = await buildCertificatePreviewHtmlFromEditableValues(
+      certificate.certificateNumber,
+      buildCertificateReviewEditableValues(currentRequest),
+      certificate.dateOfIssuance,
+      {
+        studentTitlePrefix: currentRequest.studentTitlePrefix ?? null,
+        term: currentRequest.term ?? null,
+        purposeOfRequest: currentRequest.purposeOfRequest,
+        officialReceiptNumber: currentRequest.officialReceiptNumber ?? null,
+        hasViolationRecord: currentRequest.hasViolationRecord,
+      },
+    );
+
+    await db.$transaction(async (tx) => {
       await tx.certificate.update({
         where: { id: certificate.id },
         data: {
@@ -124,7 +128,7 @@ export async function generateCertificatePdfForRequest(
         auditAction: "CERTIFICATE_APPROVED_AND_RELEASED_PDF_DOWNLOAD",
         auditNotes: `Certificate ${certificate.certificateNumber} generated and released for in-person pickup at Discipline Office.`,
       });
-    });
+    }, { timeout: 10_000 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to release the certificate.";
     const failureReviewNotes = [

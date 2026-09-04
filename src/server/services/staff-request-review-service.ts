@@ -1,6 +1,6 @@
 import type { GmcRequest, PrismaClient, StaffUser } from "@prisma/client";
 import { issueCertificateForLoadedRequest } from "@/server/services/certificate-service";
-import { DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY } from "@/server/services/certificate-template";
+import { DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY, warmSignatureImageCache } from "@/server/services/certificate-template";
 
 export type StaffReviewAction = "APPROVE" | "RETURN" | "REJECT";
 
@@ -22,6 +22,8 @@ export async function reviewGmcRequest(
   db: PrismaClient,
   input: ReviewGmcRequestInput,
 ): Promise<ReviewGmcRequestResult> {
+  await warmSignatureImageCache(DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY);
+
   return db.$transaction(async (tx) => {
     const request = await tx.gmcRequest.findUnique({
       where: { id: input.requestId },

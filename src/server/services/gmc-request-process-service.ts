@@ -15,6 +15,7 @@ import { issueCertificateForLoadedRequest } from "./certificate-service";
 import {
   DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY,
   DEFAULT_CERTIFICATE_OFFICE_DESIGNATION,
+  warmSignatureImageCache,
 } from "./certificate-template";
 import { updateGmcRequestStatusInTransaction } from "./gmc-request-service";
 
@@ -225,7 +226,82 @@ export async function confirmGmcRequestProcess(
   db: PrismaClient,
   input: GmcRequestProcessConfirmInput,
 ): Promise<GmcRequestProcessDraft> {
-  return db.$transaction(async (tx) => {
+  await warmSignatureImageCache(DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY);
+
+  const editableValues = {
+    studentFullName: input.studentFullName.trim(),
+    studentIdNumber: input.studentIdNumber.trim(),
+    courseProgram: input.courseProgram.trim(),
+    academicYear: input.academicYear.trim(),
+    purposeOfCertificate: input.purposeOfCertificate.trim(),
+    authorizedSignatory: DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY,
+    officeDesignation: DEFAULT_CERTIFICATE_OFFICE_DESIGNATION,
+  };
+
+  if (!editableValues.studentFullName) {
+    throw Object.assign(new Error("Student full name is required."), {
+      fieldErrors: { studentFullName: "Student full name is required." },
+    });
+  }
+
+  if (!editableValues.studentIdNumber) {
+    throw Object.assign(new Error("Student ID number is required."), {
+      fieldErrors: { studentIdNumber: "Student ID number is required." },
+    });
+  }
+
+  if (!STUDENT_ID_PATTERN.test(editableValues.studentIdNumber)) {
+    throw Object.assign(
+      new Error("Student ID must be in the format YEAR-NUMBER."),
+      {
+        fieldErrors: {
+          studentIdNumber:
+            "Student ID must be in the format YEAR-NUMBER (4-digit year, hyphen, then up to 10 digits).",
+        },
+      },
+    );
+  }
+
+  if (!editableValues.courseProgram) {
+    throw Object.assign(new Error("Course / program is required."), {
+      fieldErrors: { courseProgram: "Course / program is required." },
+    });
+  }
+
+  if (!editableValues.academicYear) {
+    throw Object.assign(new Error("Academic year is required."), {
+      fieldErrors: { academicYear: "Academic year is required." },
+    });
+  }
+
+  if (!input.term.trim()) {
+    throw Object.assign(new Error("Term is required."), {
+      fieldErrors: { term: "Term is required." },
+    });
+  }
+
+  if (!PURPOSE_LABEL_TO_ENUM[editableValues.purposeOfCertificate]) {
+    throw Object.assign(new Error("Select a valid purpose of certificate."), {
+      fieldErrors: {
+        purposeOfCertificate: "Select a valid purpose of certificate.",
+      },
+    });
+  }
+
+  if (!input.officialReceiptNumber.trim()) {
+    throw Object.assign(new Error("Official receipt number is required."), {
+      fieldErrors: {
+        officialReceiptNumber: "Official receipt number is required.",
+      },
+    });
+  }
+
+  const purposeOfRequest =
+    PURPOSE_LABEL_TO_ENUM[editableValues.purposeOfCertificate];
+
+  const nameParts = splitFullName(editableValues.studentFullName);
+
+  const txResult = await db.$transaction(async (tx) => {
     const currentRequest = await loadGeneratedCertificateReviewRequest(
       tx,
       input.requestId,
@@ -238,79 +314,6 @@ export async function confirmGmcRequestProcess(
     if (!PROCESSABLE_STATUSES.has(currentRequest.status)) {
       throw new Error("This request can no longer be processed.");
     }
-
-    const editableValues = {
-      studentFullName: input.studentFullName.trim(),
-      studentIdNumber: input.studentIdNumber.trim(),
-      courseProgram: input.courseProgram.trim(),
-      academicYear: input.academicYear.trim(),
-      purposeOfCertificate: input.purposeOfCertificate.trim(),
-      authorizedSignatory: DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY,
-      officeDesignation: DEFAULT_CERTIFICATE_OFFICE_DESIGNATION,
-    };
-
-    if (!editableValues.studentFullName) {
-      throw Object.assign(new Error("Student full name is required."), {
-        fieldErrors: { studentFullName: "Student full name is required." },
-      });
-    }
-
-    if (!editableValues.studentIdNumber) {
-      throw Object.assign(new Error("Student ID number is required."), {
-        fieldErrors: { studentIdNumber: "Student ID number is required." },
-      });
-    }
-
-    if (!STUDENT_ID_PATTERN.test(editableValues.studentIdNumber)) {
-      throw Object.assign(
-        new Error("Student ID must be in the format YEAR-NUMBER."),
-        {
-          fieldErrors: {
-            studentIdNumber:
-              "Student ID must be in the format YEAR-NUMBER (4-digit year, hyphen, then up to 10 digits).",
-          },
-        },
-      );
-    }
-
-    if (!editableValues.courseProgram) {
-      throw Object.assign(new Error("Course / program is required."), {
-        fieldErrors: { courseProgram: "Course / program is required." },
-      });
-    }
-
-    if (!editableValues.academicYear) {
-      throw Object.assign(new Error("Academic year is required."), {
-        fieldErrors: { academicYear: "Academic year is required." },
-      });
-    }
-
-    if (!input.term.trim()) {
-      throw Object.assign(new Error("Term is required."), {
-        fieldErrors: { term: "Term is required." },
-      });
-    }
-
-    if (!PURPOSE_LABEL_TO_ENUM[editableValues.purposeOfCertificate]) {
-      throw Object.assign(new Error("Select a valid purpose of certificate."), {
-        fieldErrors: {
-          purposeOfCertificate: "Select a valid purpose of certificate.",
-        },
-      });
-    }
-
-    if (!input.officialReceiptNumber.trim()) {
-      throw Object.assign(new Error("Official receipt number is required."), {
-        fieldErrors: {
-          officialReceiptNumber: "Official receipt number is required.",
-        },
-      });
-    }
-
-    const purposeOfRequest =
-      PURPOSE_LABEL_TO_ENUM[editableValues.purposeOfCertificate];
-
-    const nameParts = splitFullName(editableValues.studentFullName);
 
     let certificate = currentRequest.certificate;
 
@@ -377,50 +380,58 @@ export async function confirmGmcRequestProcess(
       auditNotes: "Certificate preview prepared in the guided review flow.",
     });
 
-    const previewHtml = await buildCertificatePreviewHtmlFromEditableValues(
-      certificate.certificateNumber,
-      editableValues,
-      certificate.dateOfIssuance,
-      {
-        studentTitlePrefix: currentRequest.studentTitlePrefix ?? null,
-        term: input.term.trim(),
-        purposeOfRequest,
-        officialReceiptNumber: input.officialReceiptNumber.trim(),
-        hasViolationRecord: Boolean(input.hasViolationRecord),
-      },
-    );
+    return {
+      requestId: currentRequest.id,
+      certificateId: certificate.id,
+      certificateNumber: certificate.certificateNumber,
+      dateOfIssuance: certificate.dateOfIssuance,
+      studentTitlePrefix: currentRequest.studentTitlePrefix,
+    };
+  }, { timeout: 10_000 });
 
-    await tx.certificate.update({
-      where: { id: certificate.id },
-      data: { previewHtml },
-    });
+  const previewHtml = await buildCertificatePreviewHtmlFromEditableValues(
+    txResult.certificateNumber,
+    editableValues,
+    txResult.dateOfIssuance,
+    {
+      studentTitlePrefix: txResult.studentTitlePrefix ?? null,
+      term: input.term.trim(),
+      purposeOfRequest,
+      officialReceiptNumber: input.officialReceiptNumber.trim(),
+      hasViolationRecord: Boolean(input.hasViolationRecord),
+    },
+  );
 
-    await tx.auditLogEntry.create({
-      data: {
-        gmcRequestId: currentRequest.id,
-        actorId: input.staffUserId,
-        action: "CERTIFICATE_EDITED_BEFORE_APPROVAL",
-        notes: "Certificate details updated during guided review.",
-      },
-    });
-
-    const refreshed = await loadGeneratedCertificateReviewRequest(
-      tx,
-      currentRequest.id,
-    );
-
-    if (!refreshed) {
-      throw new Error("Unable to reload the request after confirmation.");
-    }
-
-    const invoiceNumberDuplicate = await findDuplicateInvoiceRequest(
-      tx,
-      currentRequest.id,
-      refreshed.officialReceiptNumber,
-    );
-
-    return await buildGmcRequestProcessDraft(refreshed, invoiceNumberDuplicate);
+  await db.certificate.update({
+    where: { id: txResult.certificateId },
+    data: { previewHtml },
   });
+
+  await db.auditLogEntry.create({
+    data: {
+      gmcRequestId: txResult.requestId,
+      actorId: input.staffUserId,
+      action: "CERTIFICATE_EDITED_BEFORE_APPROVAL",
+      notes: "Certificate details updated during guided review.",
+    },
+  });
+
+  const refreshed = await loadGeneratedCertificateReviewRequest(
+    db,
+    txResult.requestId,
+  );
+
+  if (!refreshed) {
+    throw new Error("Unable to reload the request after confirmation.");
+  }
+
+  const invoiceNumberDuplicate = await findDuplicateInvoiceRequest(
+    db,
+    txResult.requestId,
+    refreshed.officialReceiptNumber,
+  );
+
+  return await buildGmcRequestProcessDraft(refreshed, invoiceNumberDuplicate);
 }
 
 export interface GmcRequestProcessRejectInput {
@@ -433,7 +444,17 @@ export async function rejectGmcRequestProcess(
   db: PrismaClient,
   input: GmcRequestProcessRejectInput,
 ): Promise<GmcRequestProcessDraft> {
-  return db.$transaction(async (tx) => {
+  await warmSignatureImageCache(DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY);
+
+  const reason = input.rejectionReason.trim();
+
+  if (!reason) {
+    throw Object.assign(new Error("A rejection reason is required."), {
+      fieldErrors: { rejectionReason: "A rejection reason is required." },
+    });
+  }
+
+  const txResult = await db.$transaction(async (tx) => {
     const currentRequest = await loadGeneratedCertificateReviewRequest(
       tx,
       input.requestId,
@@ -446,14 +467,6 @@ export async function rejectGmcRequestProcess(
     if (currentRequest.status !== "PENDING" && currentRequest.status !== "APPROVED") {
       throw Object.assign(new Error("Only pending requests can be rejected."), {
         statusCode: 400,
-      });
-    }
-
-    const reason = input.rejectionReason.trim();
-
-    if (!reason) {
-      throw Object.assign(new Error("A rejection reason is required."), {
-        fieldErrors: { rejectionReason: "A rejection reason is required." },
       });
     }
 
@@ -483,6 +496,11 @@ export async function rejectGmcRequestProcess(
       refreshed.officialReceiptNumber,
     );
 
-    return await buildGmcRequestProcessDraft(refreshed, invoiceNumberDuplicate);
-  });
+    return { refreshed, invoiceNumberDuplicate };
+  }, { timeout: 10_000 });
+
+  return await buildGmcRequestProcessDraft(
+    txResult.refreshed,
+    txResult.invoiceNumberDuplicate,
+  );
 }
