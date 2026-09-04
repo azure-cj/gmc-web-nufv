@@ -6,6 +6,7 @@ import {
   formatBusinessDateTime,
   formatPurposeLabel,
   formatRequestStatusLabel,
+  getFileViewerKind,
 } from "@/lib/gmc-request";
 import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file-url";
 
@@ -34,6 +35,7 @@ interface ProcessDraft {
       | "OTHER";
     term: string | null;
     officialReceiptNumber: string | null;
+    paymentProofFileUrl: string | null;
     hasViolationRecord: boolean;
     reviewNotes: string | null;
     dateSubmitted: string;
@@ -728,6 +730,43 @@ export default function StaffRequestProcessModal({
                   </span>
                   . Please verify this before proceeding.
                 </p>
+              </div>
+            ) : null}
+
+            {draft?.request.paymentProofFileUrl ? (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-slate-700">
+                  Student-Submitted Receipt Photo
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Cross-check the typed invoice number against the actual receipt image below.
+                </p>
+                {(() => {
+                  const viewerKind = getFileViewerKind(draft.request.paymentProofFileUrl);
+                  const proofUrl = getPrivateStorageDownloadUrl(draft.request.paymentProofFileUrl);
+                  return (
+                    <div className="mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                      {viewerKind === "image" ? (
+                        <img
+                          src={proofUrl}
+                          alt="Payment proof receipt"
+                          className="h-auto w-full object-contain"
+                        />
+                      ) : (
+                        <div className="flex min-h-40 flex-col items-start justify-center gap-2 p-4">
+                          <a
+                            href={proofUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex rounded-2xl bg-[#1E1E2C] px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                          >
+                            Open receipt file
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             ) : null}
           </div>

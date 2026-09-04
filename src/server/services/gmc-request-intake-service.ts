@@ -5,6 +5,7 @@ import type {
 } from "@prisma/client";
 import type { EmailService } from "@/lib/email";
 import { createRequestReferenceNumber } from "@/lib/numbering";
+import type { StorageService, StoredFile } from "@/lib/storage";
 import type { GmcRequestSubmissionValues } from "@/lib/gmc-request";
 
 type DatabaseClient = PrismaClient;
@@ -31,6 +32,7 @@ export class DuplicateInvoiceNumberError extends Error {
 
 export async function submitGmcRequest(
   db: DatabaseClient,
+  storageService: StorageService,
   emailService: EmailService,
   input: GmcRequestSubmissionValues,
 ): Promise<SubmitGmcRequestResult> {
@@ -53,70 +55,87 @@ export async function submitGmcRequest(
     );
   }
 
-  await db.$transaction(async (tx) => {
-    const student = await tx.student.upsert({
-      where: { studentId: input.studentId },
-      create: {
-        studentId: input.studentId,
-        firstName: input.firstName,
-        middleInitial: input.middleInitial,
-        lastName: input.lastName,
-        courseProgram: input.courseProgram,
-        academicYear: input.academicYear,
-        email: input.email,
-      },
-      update: {
-        firstName: input.firstName,
-        middleInitial: input.middleInitial,
-        lastName: input.lastName,
-        courseProgram: input.courseProgram,
-        academicYear: input.academicYear,
-        email: input.email,
-      },
+  let uploadedProof: StoredFile | null = null;
+
+  try {
+    uploadedProof = await storageService.upload({
+      buffer: Buffer.from(await input.paymentProofFile.arrayBuffer()),
+      filename: input.paymentProofFile.name || "payment-proof",
+      contentType: input.paymentProofFile.type || undefined,
+      subdirectory: "gmc-request-proofs",
     });
 
-    studentName = [student.firstName, student.middleInitial, student.lastName]
-      .filter(Boolean)
-      .join(" ");
+    await db.$transaction(async (tx) => {
+      const student = await tx.student.upsert({
+        where: { studentId: input.studentId },
+        create: {
+          studentId: input.studentId,
+          firstName: input.firstName,
+          middleInitial: input.middleInitial,
+          lastName: input.lastName,
+          courseProgram: input.courseProgram,
+          academicYear: input.academicYear,
+          email: input.email,
+        },
+        update: {
+          firstName: input.firstName,
+          middleInitial: input.middleInitial,
+          lastName: input.lastName,
+          courseProgram: input.courseProgram,
+          academicYear: input.academicYear,
+          email: input.email,
+        },
+      });
 
-    requestReferenceNumber = await createRequestReferenceNumber(
-      tx,
-      submittedAt,
-    );
+      studentName = [student.firstName, student.middleInitial, student.lastName]
+        .filter(Boolean)
+        .join(" ");
 
-    request = await tx.gmcRequest.create({
-      data: {
-        requestReferenceNumber,
-        studentId: student.studentId,
-        studentTitlePrefix: input.titlePrefix,
-        studentFirstName: input.firstName,
-        studentMiddleInitial: input.middleInitial,
-        studentLastName: input.lastName,
-        studentCourseProgram: input.courseProgram,
-        studentAcademicYear: input.academicYear,
-        term: input.term,
-        studentEmail: input.email,
-        purposeOfRequest: input.purposeOfRequest as PurposeOfRequest,
-        officialReceiptNumber: input.paymentReceiptNumber,
-        status: "PENDING",
-        paymentVerificationStatus: "UNVERIFIED",
-        accuracyCertified: input.accuracyCertified,
-        accuracyCertifiedAt: input.accuracyCertified ? submittedAt : null,
-        dateSubmitted: submittedAt,
-      },
+      requestReferenceNumber = await createRequestReferenceNumber(
+        tx,
+        submittedAt,
+      );
+
+      request = await tx.gmcRequest.create({
+        data: {
+          requestReferenceNumber,
+          studentId: student.studentId,
+          studentTitlePrefix: input.titlePrefix,
+          studentFirstName: input.firstName,
+          studentMiddleInitial: input.middleInitial,
+          studentLastName: input.lastName,
+          studentCourseProgram: input.courseProgram,
+          studentAcademicYear: input.academicYear,
+          term: input.term,
+          studentEmail: input.email,
+          purposeOfRequest: input.purposeOfRequest as PurposeOfRequest,
+          officialReceiptNumber: input.paymentReceiptNumber,
+          paymentProofFileUrl: uploadedProof!.url,
+          status: "PENDING",
+          paymentVerificationStatus: "UNVERIFIED",
+          accuracyCertified: input.accuracyCertified,
+          accuracyCertifiedAt: input.accuracyCertified ? submittedAt : null,
+          dateSubmitted: submittedAt,
+        },
+      });
+
+      await tx.auditLogEntry.create({
+        data: {
+          gmcRequestId: request.id,
+          actorId: null,
+          action: "REQUEST_SUBMITTED",
+          notes: `Request submitted with reference number ${requestReferenceNumber}.`,
+        },
+      });
     });
+  } catch (error) {
+    if (uploadedProof) {
+      await storageService.delete(uploadedProof.key).catch(() => undefined);
+    }
+    throw error;
+  }
 
-    await tx.auditLogEntry.create({
-      data: {
-        gmcRequestId: request.id,
-        actorId: null,
-        action: "REQUEST_SUBMITTED",
-        notes: `Request submitted with reference number ${requestReferenceNumber}.`,
-      },
-    });
-  });
-
-  if (!request) {
+  if (!request || !uploadedProof) {
     throw new Error("Failed to create GMC request.");
   }
 

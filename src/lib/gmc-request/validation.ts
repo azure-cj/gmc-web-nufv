@@ -1,5 +1,6 @@
 import {
   GMC_REQUEST_COURSE_PROGRAM_VALUES,
+  GMC_REQUEST_PAYMENT_PROOF_MAX_BYTES,
   GMC_REQUEST_PAYMENT_RECEIPT_MAX_LENGTH,
   GMC_REQUEST_PURPOSE_VALUES,
   GMC_REQUEST_TITLE_PREFIX_VALUES,
@@ -22,6 +23,7 @@ export type GmcRequestFieldName =
   | "purposeOfRequest"
   | "email"
   | "paymentReceiptNumber"
+  | "paymentProofFile"
   | "accuracyCertified";
 
 export type GmcRequestFieldErrors = Partial<Record<GmcRequestFieldName, string>>;
@@ -38,6 +40,7 @@ export interface GmcRequestSubmissionInput {
   purposeOfRequest: string;
   email: string;
   paymentReceiptNumber: string;
+  paymentProofFile: File | null;
   accuracyCertified?: boolean;
 }
 
@@ -53,6 +56,7 @@ export interface GmcRequestSubmissionValues {
   purposeOfRequest: GmcRequestPurposeValue;
   email: string;
   paymentReceiptNumber: string;
+  paymentProofFile: File;
   accuracyCertified: boolean;
 }
 
@@ -67,6 +71,19 @@ export const STUDENT_ID_FORMAT_HINT =
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIDDLE_INITIAL_PATTERN = /^[A-Za-z]$/;
 
+function getFileMagicSignature(file: File): Promise<Uint8Array> {
+  return file.slice(0, 8).arrayBuffer().then((buffer) => new Uint8Array(buffer));
+}
+
+function isJpeg(signature: Uint8Array): boolean {
+  return (
+    signature.length >= 3 &&
+    signature[0] === 0xff &&
+    signature[1] === 0xd8 &&
+    signature[2] === 0xff
+  );
+}
+
 function validatePaymentReceiptNumber(value: string): string | null {
   const receiptNumber = value.trim();
 
@@ -80,6 +97,29 @@ function validatePaymentReceiptNumber(value: string): string | null {
 
   if (!INVOICE_NUMBER_PATTERN.test(receiptNumber)) {
     return INVOICE_NUMBER_FORMAT_HINT;
+  }
+
+  return null;
+}
+
+async function validatePaymentProofFile(file: File | null): Promise<string | null> {
+  if (!file) {
+    return "Upload a JPG file of your payment receipt.";
+  }
+
+  if (file.size <= 0) {
+    return "Upload a valid payment proof file.";
+  }
+
+  if (file.size > GMC_REQUEST_PAYMENT_PROOF_MAX_BYTES) {
+    return "The payment proof must be 5 MB or smaller.";
+  }
+
+  const signature = await getFileMagicSignature(file);
+  const isAllowedType = isJpeg(signature);
+
+  if (!isAllowedType) {
+    return "Only JPG files are allowed.";
   }
 
   return null;
@@ -177,12 +217,20 @@ export async function validateGmcRequestSubmission(
     fieldErrors.paymentReceiptNumber = paymentReceiptNumberError;
   }
 
+  const paymentProofFileError = await validatePaymentProofFile(
+    input.paymentProofFile,
+  );
+
+  if (paymentProofFileError) {
+    fieldErrors.paymentProofFile = paymentProofFileError;
+  }
+
   if (!input.accuracyCertified) {
     fieldErrors.accuracyCertified =
       "You must certify that all information provided is true and accurate.";
   }
 
-  if (Object.keys(fieldErrors).length > 0) {
+  if (Object.keys(fieldErrors).length > 0 || !input.paymentProofFile) {
     return { fieldErrors };
   }
 
@@ -200,6 +248,7 @@ export async function validateGmcRequestSubmission(
       purposeOfRequest: purposeOfRequest as GmcRequestPurposeValue,
       email,
       paymentReceiptNumber,
+      paymentProofFile: input.paymentProofFile,
       accuracyCertified: Boolean(input.accuracyCertified),
     },
   };

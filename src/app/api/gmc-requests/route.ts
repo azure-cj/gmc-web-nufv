@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { consoleEmailService } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
+import { getStorageService } from "@/lib/storage";
 import { submitGmcRequest, DuplicateInvoiceNumberError } from "@/server/services/gmc-request-intake-service";
 import { validateGmcRequestSubmission } from "@/lib/gmc-request";
 import { getCurrentAcademicYear, getCurrentTerm } from "@/lib/system-settings";
@@ -11,6 +12,15 @@ export const maxDuration = 60;
 function getFormText(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
+}
+
+function getFormFile(formData: FormData, key: string): File | null {
+  const value = formData.get(key);
+  if (!value || typeof value === "string") {
+    return null;
+  }
+
+  return typeof value.arrayBuffer === "function" ? value : null;
 }
 
 export async function POST(request: Request) {
@@ -33,6 +43,7 @@ export async function POST(request: Request) {
       purposeOfRequest: getFormText(formData, "purposeOfRequest"),
       email: getFormText(formData, "email"),
       paymentReceiptNumber: getFormText(formData, "paymentReceiptNumber"),
+      paymentProofFile: getFormFile(formData, "paymentProofFile"),
       accuracyCertified: formData.get("accuracyCertified") === "true",
     });
 
@@ -48,6 +59,7 @@ export async function POST(request: Request) {
 
     const result = await submitGmcRequest(
       prisma,
+      getStorageService(),
       consoleEmailService,
       validation.values,
     );

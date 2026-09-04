@@ -47,6 +47,17 @@ export const GMC_REQUEST_TITLE_PREFIX_VALUES = GMC_REQUEST_TITLE_PREFIX_OPTIONS.
 
 export const GMC_REQUEST_PAYMENT_RECEIPT_MAX_LENGTH = 64;
 
+export const GMC_REQUEST_PAYMENT_PROOF_MAX_BYTES = 5 * 1024 * 1024;
+
+export const GMC_REQUEST_PAYMENT_PROOF_ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+] as const;
+
+export const GMC_REQUEST_PAYMENT_PROOF_ALLOWED_EXTENSIONS = [
+  ".jpg",
+  ".jpeg",
+] as const;
+
 export const INVOICE_NUMBER_PATTERN = /^INV01-\d{9,12}$/i;
 export const INVOICE_NUMBER_FORMAT_HINT =
   "Invoice number must start with INV01- followed by 9 to 12 digits (e.g. INV01-12345678901).";

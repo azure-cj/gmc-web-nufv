@@ -43,6 +43,7 @@ export interface GmcRequestProcessDraft {
     purposeOfRequest: PurposeOfRequest;
     term: string | null;
     officialReceiptNumber: string | null;
+    paymentProofFileUrl: string | null;
     hasViolationRecord: boolean;
     reviewNotes: string | null;
     dateSubmitted: string;
@@ -116,6 +117,7 @@ export function buildGmcRequestProcessDraft(
       purposeOfRequest: request.purposeOfRequest,
       term: request.term ?? null,
       officialReceiptNumber: request.officialReceiptNumber ?? null,
+      paymentProofFileUrl: request.paymentProofFileUrl ?? null,
       hasViolationRecord: request.hasViolationRecord,
       reviewNotes: request.reviewNotes ?? null,
       dateSubmitted: request.dateSubmitted.toISOString(),
