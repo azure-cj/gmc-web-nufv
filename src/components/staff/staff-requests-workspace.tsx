@@ -16,6 +16,7 @@ import {
   type StaffDashboardFilters,
 } from "@/server/services/staff-dashboard-service";
 import StaffDashboardOverview from "@/components/staff/staff-dashboard-overview";
+import StaffRequestDetailModal from "@/components/staff/staff-request-detail-modal";
 import StaffRequestProcessModal from "@/components/staff/staff-request-process-modal";
 import type { StaffDashboardOverviewData } from "@/server/services/staff-dashboard-overview-service";
 
@@ -57,18 +58,6 @@ function statusBadgeClass(status: string): string {
     default:
       return "border-[#8A94A6]/40 bg-[#8A94A6]/15 text-[#4A5260]";
   }
-}
-
-function buildRequestActionHref(
-  detailBasePath: string,
-  requestId: string,
-  mode: "approve" | "return" | "reject" | "view",
-  returnTo: string,
-): string {
-  const query = new URLSearchParams();
-  query.set("mode", mode);
-  query.set("returnTo", returnTo);
-  return `${detailBasePath}/${requestId}?${query.toString()}`;
 }
 
 function buildRequestViewHref(
@@ -294,12 +283,6 @@ export default function StaffRequestsWorkspace({
                 </tr>
               ) : (
                 data.requests.map((request) => {
-                  const requestHref = buildRequestActionHref(
-                    detailBasePath,
-                    request.id,
-                    "view",
-                    currentReturnTo,
-                  );
                   const reviewHref = buildCertificateReviewHref(
                     detailBasePath,
                     request.id,
@@ -343,68 +326,65 @@ export default function StaffRequestsWorkspace({
                         </span>
                       </td>
                       <td className="px-6 py-5 align-top sm:px-8">
-                        {request.status === "PENDING" ? (
-                          <StaffRequestProcessModal
+                        <div className="flex flex-wrap gap-2">
+                          {request.status === "PENDING" ? (
+                            <StaffRequestProcessModal
+                              requestId={request.id}
+                              requestReferenceNumber={request.requestReferenceNumber}
+                            />
+                          ) : request.status === "GENERATED" ||
+                            request.status === "DELIVERY_FAILED" ? (
+                            <Link
+                              href={reviewHref}
+                              className="inline-flex rounded-full border border-[#3B8FF3]/40 bg-[#3B8FF3]/15 px-3 py-1.5 text-xs font-semibold text-[#1E589B] transition hover:bg-[#3B8FF3]/25"
+                            >
+                              {request.status === "DELIVERY_FAILED"
+                                ? "Retry PDF Generation"
+                                : "Review Certificate"}
+                            </Link>
+                          ) : request.status === "RETURNED" ? (
+                            <Link
+                              href={buildRequestViewHref(
+                                detailBasePath,
+                                request.id,
+                                currentReturnTo,
+                                "view-note",
+                              )}
+                              className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                            >
+                              View Note
+                            </Link>
+                          ) : request.status === "REJECTED" ? (
+                            <Link
+                              href={buildRequestViewHref(
+                                detailBasePath,
+                                request.id,
+                                currentReturnTo,
+                                "view-reason",
+                              )}
+                              className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                            >
+                              View Reason
+                            </Link>
+                          ) : null}
+                          <StaffRequestDetailModal
                             requestId={request.id}
                             requestReferenceNumber={request.requestReferenceNumber}
                           />
-                        ) : request.status === "GENERATED" ||
-                          request.status === "DELIVERY_FAILED" ? (
-                          <Link
-                            href={reviewHref}
-                            className="inline-flex rounded-full border border-[#3B8FF3]/40 bg-[#3B8FF3]/15 px-3 py-1.5 text-xs font-semibold text-[#1E589B] transition hover:bg-[#3B8FF3]/25"
-                          >
-                            {request.status === "DELIVERY_FAILED"
-                              ? "Retry PDF Generation"
-                              : "Review Certificate"}
-                          </Link>
-                        ) : request.status === "RETURNED" ? (
-                          <Link
-                            href={buildRequestViewHref(
-                              detailBasePath,
-                              request.id,
-                              currentReturnTo,
-                              "view-note",
-                            )}
-                            className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
-                          >
-                            View Note
-                          </Link>
-                        ) : request.status === "REJECTED" ? (
-                          <Link
-                            href={buildRequestViewHref(
-                              detailBasePath,
-                              request.id,
-                              currentReturnTo,
-                              "view-reason",
-                            )}
-                            className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
-                          >
-                            View Reason
-                          </Link>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            <Link
-                              href={requestHref}
-                              className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                          {request.status === "RELEASED" && request.certificate?.generatedPdfUrl ? (
+                            <a
+                              href={getPrivateStorageDownloadUrl(
+                                request.certificate.generatedPdfUrl,
+                                `${fullName(request.studentFirstName, request.studentMiddleInitial, request.studentLastName)}_${request.certificate.certificateNumber}.pdf`,
+                              )}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex rounded-full bg-amber-400 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-amber-300"
                             >
-                              View
-                            </Link>
-                            {request.status === "RELEASED" && request.certificate?.generatedPdfUrl ? (
-                              <a
-                                href={getPrivateStorageDownloadUrl(
-                                  request.certificate.generatedPdfUrl,
-                                  `${fullName(request.studentFirstName, request.studentMiddleInitial, request.studentLastName)}_${request.certificate.certificateNumber}.pdf`,
-                                )}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex rounded-full bg-amber-400 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-amber-300"
-                              >
-                                Download PDF
-                              </a>
-                            ) : null}
-                          </div>
-                        )}
+                              Download PDF
+                            </a>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   );

@@ -9,6 +9,7 @@ import {
   getFileViewerKind,
 } from "@/lib/gmc-request";
 import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file-url";
+import { getStaffRequestDetail } from "@/server/services/staff-request-detail-service";
 import StaffRequestReviewClient from "@/components/staff/staff-request-review-client";
 
 export const dynamic = "force-dynamic";
@@ -138,18 +139,7 @@ export default async function StaffRequestReviewPage({
 }: StaffRequestReviewPageProps) {
   const { requestId } = await params;
   const resolvedSearchParams = (await searchParams) ?? {};
-  const request = await prisma.gmcRequest.findUnique({
-    where: { id: requestId },
-    include: {
-      student: true,
-      reviewedBy: true,
-      certificate: true,
-      auditLogs: {
-        orderBy: { timestamp: "asc" },
-        include: { actor: true },
-      },
-    },
-  });
+  const request = await getStaffRequestDetail(prisma, requestId);
 
   if (!request) {
     notFound();
