@@ -202,13 +202,12 @@ export async function buildGoodMoralCertificateHtml(
       .certified-by {
         font-size: 12pt;
         font-style: italic;
-        margin: 0 0 10px;
+        margin: 0 0 6px;
       }
 
       .signature-block {
-        margin-left: auto;
-        width: 320px;
-        text-align: center;
+        width: 420px;
+        text-align: left;
         margin-bottom: 24px;
         break-inside: avoid;
         page-break-inside: avoid;
@@ -231,7 +230,7 @@ export async function buildGoodMoralCertificateHtml(
         display: block;
         max-width: 144px;
         height: auto;
-        margin: 0 auto 6px;
+        margin: 0 0 -16px;
       }
 
       .footer-block {
@@ -304,9 +303,8 @@ export async function buildGoodMoralCertificateHtml(
 
       <div class="spacer-before-certified-by"></div>
 
-      <p class="certified-by">Certified by</p>
-
       <div class="signature-block">
+        <p class="certified-by">Certified by</p>
         ${signatureDataUri ? `<img class="signatory-image" src="${signatureDataUri}" alt="Signature of ${escapeHtml(input.authorizedSignatory)}" />` : ""}
         <p class="signatory-name">${escapeHtml(input.authorizedSignatory)}</p>
         <p class="signatory-title">${escapeHtml(input.officeDesignation)}</p>
