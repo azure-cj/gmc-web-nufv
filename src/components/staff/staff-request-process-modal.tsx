@@ -6,6 +6,7 @@ import {
   formatBusinessDateTime,
   formatPurposeLabel,
   formatRequestStatusLabel,
+  PAYMENT_PROOF_MANDATORY_CUTOFF,
 } from "@/lib/gmc-request";
 import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file-url";
 
@@ -801,7 +802,12 @@ export default function StaffRequestProcessModal({
                           View Full Image
                         </button>
                       ) : (
-                        <p className="mt-2 text-xs text-rose-600">Image unavailable — file may have been purged.</p>
+                        <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-amber-800">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                          <span>Payment proof file could not be loaded — verify receipt manually.</span>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -843,7 +849,36 @@ export default function StaffRequestProcessModal({
                   )}
                 </>
               );
-            })() : null}
+            })() : (() => {
+              if (!draft?.request) return null;
+              const isMandatory =
+                new Date(draft.request.dateSubmitted).getTime() >=
+                new Date(PAYMENT_PROOF_MANDATORY_CUTOFF).getTime();
+
+              if (!isMandatory) {
+                // Case A: predates the payment proof requirement — silent, section hidden entirely
+                return null;
+              }
+
+              // Case B: recent/new request with missing payment proof file — amber anomaly warning
+              return (
+                <div className="mt-4 rounded-2xl border border-amber-400/60 bg-amber-50 px-4 py-3">
+                  <div className="flex items-start gap-2.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-amber-900">
+                        No payment proof file found for this request — verify before proceeding.
+                      </p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-amber-800/90">
+                        This request was submitted after proof upload was required, but no receipt image was attached.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
