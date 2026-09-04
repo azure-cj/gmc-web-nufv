@@ -50,7 +50,7 @@ model Student {
   lastName        String
   courseProgram   String
   academicYear    String
-  email           String       @unique
+  email           String
   gmcRequests     GmcRequest[]
 }
 

@@ -12,6 +12,7 @@ import {
   INVOICE_NUMBER_PATTERN,
   type GmcRequestFieldErrors,
   validateGmcRequestSubmission,
+  validatePaymentProofFile,
 } from "@/lib/gmc-request";
 
 interface RequestFormClientProps {
@@ -195,6 +196,31 @@ export default function RequestFormClient({
   const resetForm = () => {
     clearFormState();
     setSubmission(null);
+  };
+
+  const handlePaymentProofChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0] ?? null;
+    if (!file) {
+      updateField("paymentProofFile", null);
+      return;
+    }
+
+    const validationError = await validatePaymentProofFile(file);
+    if (validationError) {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      setValues((current) => ({ ...current, paymentProofFile: null }));
+      setErrors((current) => ({
+        ...current,
+        paymentProofFile: validationError,
+      }));
+      return;
+    }
+
+    updateField("paymentProofFile", file);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -736,12 +762,7 @@ export default function RequestFormClient({
                   type="file"
                   accept={PAYMENT_PROOF_ACCEPT}
                   required
-                  onChange={(event) =>
-                    updateField(
-                      "paymentProofFile",
-                      event.target.files?.[0] ?? null,
-                    )
-                  }
+                  onChange={handlePaymentProofChange}
                   className="mt-4 block w-full rounded-2xl border border-[#2C4368]/25 bg-slate-50 px-4 py-3 text-sm text-slate-700 shadow-sm file:mr-4 file:rounded-full file:border-0 file:bg-[#102040] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#2C4368]"
                   aria-invalid={Boolean(errors.paymentProofFile)}
                   aria-describedby={

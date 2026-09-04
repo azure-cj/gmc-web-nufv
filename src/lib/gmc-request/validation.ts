@@ -75,7 +75,7 @@ function getFileMagicSignature(file: File): Promise<Uint8Array> {
   return file.slice(0, 8).arrayBuffer().then((buffer) => new Uint8Array(buffer));
 }
 
-function isJpeg(signature: Uint8Array): boolean {
+export function isJpeg(signature: Uint8Array): boolean {
   return (
     signature.length >= 3 &&
     signature[0] === 0xff &&
@@ -102,9 +102,9 @@ function validatePaymentReceiptNumber(value: string): string | null {
   return null;
 }
 
-async function validatePaymentProofFile(file: File | null): Promise<string | null> {
+export async function validatePaymentProofFile(file: File | null): Promise<string | null> {
   if (!file) {
-    return "Upload a JPG file of your payment receipt.";
+    return "Upload a JPG/JPEG file of your payment receipt.";
   }
 
   if (file.size <= 0) {
@@ -115,11 +115,15 @@ async function validatePaymentProofFile(file: File | null): Promise<string | nul
     return "The payment proof must be 5 MB or smaller.";
   }
 
-  const signature = await getFileMagicSignature(file);
-  const isAllowedType = isJpeg(signature);
+  try {
+    const signature = await getFileMagicSignature(file);
+    const isAllowedType = isJpeg(signature);
 
-  if (!isAllowedType) {
-    return "Only JPG files are allowed.";
+    if (!isAllowedType) {
+      return "Only JPG/JPEG files are accepted. Please remove this file and upload a JPEG photo of your receipt.";
+    }
+  } catch {
+    return "Unable to read the uploaded file. Please upload a valid JPG/JPEG photo.";
   }
 
   return null;

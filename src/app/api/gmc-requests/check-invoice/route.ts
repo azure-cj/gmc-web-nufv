@@ -18,9 +18,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ exists: false }, { status: 200 });
     }
 
+    const normalizedInvoice = invoiceNumber.toUpperCase();
+
     const existing = await prisma.gmcRequest.findFirst({
       where: {
-        officialReceiptNumber: invoiceNumber,
+        officialReceiptNumber: {
+          equals: normalizedInvoice,
+          mode: "insensitive",
+        },
       },
       select: { requestReferenceNumber: true },
     });

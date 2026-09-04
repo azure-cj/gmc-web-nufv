@@ -42,9 +42,14 @@ export async function submitGmcRequest(
   let requestReferenceNumber = "";
   let studentName = "";
 
+  const normalizedReceipt = input.paymentReceiptNumber.trim().toUpperCase();
+
   const existingInvoiceRequest = await db.gmcRequest.findFirst({
     where: {
-      officialReceiptNumber: input.paymentReceiptNumber,
+      officialReceiptNumber: {
+        equals: normalizedReceipt,
+        mode: "insensitive",
+      },
     },
     select: { requestReferenceNumber: true },
   });
@@ -109,7 +114,7 @@ export async function submitGmcRequest(
           term: input.term,
           studentEmail: input.email,
           purposeOfRequest: input.purposeOfRequest as PurposeOfRequest,
-          officialReceiptNumber: input.paymentReceiptNumber,
+          officialReceiptNumber: normalizedReceipt,
           paymentProofFileUrl: uploadedProof!.url,
           status: "PENDING",
           paymentVerificationStatus: "UNVERIFIED",

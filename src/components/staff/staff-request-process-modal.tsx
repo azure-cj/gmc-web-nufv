@@ -6,7 +6,6 @@ import {
   formatBusinessDateTime,
   formatPurposeLabel,
   formatRequestStatusLabel,
-  getFileViewerKind,
 } from "@/lib/gmc-request";
 import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file-url";
 
@@ -189,6 +188,8 @@ export default function StaffRequestProcessModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [proofLightboxOpen, setProofLightboxOpen] = useState(false);
+  const [proofImageStatus, setProofImageStatus] = useState<"loading" | "loaded" | "error">("loading");
 
   useEffect(() => {
     if (!isOpen) {
@@ -216,6 +217,8 @@ export default function StaffRequestProcessModal({
     setIsShowingReleaseConfirm(false);
     setFormError(null);
     setFieldErrors({});
+    setProofLightboxOpen(false);
+    setProofImageStatus("loading");
 
     try {
       const response = await fetch(
@@ -733,44 +736,117 @@ export default function StaffRequestProcessModal({
               </div>
             ) : null}
 
-            {draft?.request.paymentProofFileUrl ? (
-              <div className="mt-4">
-                <p className="text-sm font-medium text-slate-700">
-                  Student-Submitted Receipt Photo
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Cross-check the typed invoice number against the actual receipt image below.
-                </p>
-                {(() => {
-                  const viewerKind = getFileViewerKind(draft.request.paymentProofFileUrl);
-                  const proofUrl = getPrivateStorageDownloadUrl(draft.request.paymentProofFileUrl);
-                  return (
-                    <div className="mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                      {viewerKind === "image" ? (
-                        <img
-                          src={proofUrl}
-                          alt="Payment proof receipt"
-                          className="h-auto w-full object-contain"
-                        />
-                      ) : (
-                        <div className="flex min-h-40 flex-col items-start justify-center gap-2 p-4">
-                          <a
-                            href={proofUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex rounded-2xl bg-[#1E1E2C] px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                          >
-                            Open receipt file
-                          </a>
+            {draft?.request.paymentProofFileUrl ? (() => {
+              const proofUrl = getPrivateStorageDownloadUrl(draft.request.paymentProofFileUrl);
+              return (
+                <>
+                  {/* ── Compact thumbnail strip ── */}
+                  <div className="mt-4 flex items-center gap-4">
+                    {/* Thumbnail */}
+                    <button
+                      type="button"
+                      onClick={() => setProofLightboxOpen(true)}
+                      className="group relative h-[80px] w-[120px] shrink-0 overflow-hidden rounded-xl border border-[#2C4368]/20 bg-slate-100 shadow-sm transition hover:border-[#2C4368]/50 hover:shadow focus:outline-none focus:ring-2 focus:ring-[#2C4368]/30"
+                      aria-label="View full payment proof image"
+                    >
+                      {/* Skeleton shown while image is loading */}
+                      {proofImageStatus === "loading" && (
+                        <div className="absolute inset-0 animate-pulse bg-slate-200" />
+                      )}
+                      {/* Error state */}
+                      {proofImageStatus === "error" && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-2 text-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                          <span className="text-[10px] leading-tight text-slate-500">Unavailable</span>
                         </div>
                       )}
+                      {/* Actual thumbnail image */}
+                      <img
+                        src={proofUrl}
+                        alt="Payment proof thumbnail"
+                        className={[
+                          "h-full w-full object-cover transition-opacity duration-200",
+                          proofImageStatus === "loaded" ? "opacity-100" : "opacity-0",
+                        ].join(" ")}
+                        onLoad={() => setProofImageStatus("loaded")}
+                        onError={() => setProofImageStatus("error")}
+                      />
+                      {/* Hover overlay */}
+                      {proofImageStatus === "loaded" && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[#1E1E2C]/0 transition-colors group-hover:bg-[#1E1E2C]/30">
+                          <span className="scale-90 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-[#1E1E2C] opacity-0 transition group-hover:scale-100 group-hover:opacity-100">
+                            View
+                          </span>
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Label + action */}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-700">Payment Proof</p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        Cross-check the invoice number against the actual receipt photo.
+                      </p>
+                      {proofImageStatus !== "error" ? (
+                        <button
+                          type="button"
+                          onClick={() => setProofLightboxOpen(true)}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#2C4368]/25 bg-white px-3 py-1.5 text-xs font-semibold text-[#1E1E2C] shadow-sm transition hover:border-[#2C4368]/50 hover:bg-slate-50"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-[#2C4368]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
+                          </svg>
+                          View Full Image
+                        </button>
+                      ) : (
+                        <p className="mt-2 text-xs text-rose-600">Image unavailable — file may have been purged.</p>
+                      )}
                     </div>
-                  );
-                })()}
-              </div>
-            ) : null}
+                  </div>
+
+                  {/* ── Lightbox overlay ── */}
+                  {proofLightboxOpen && (
+                    <div
+                      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+                      onClick={() => setProofLightboxOpen(false)}
+                    >
+                      {/* Close button */}
+                      <button
+                        type="button"
+                        onClick={() => setProofLightboxOpen(false)}
+                        className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/40"
+                        aria-label="Close image"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+
+                      {/* Image container — stops click propagation so clicking the image doesn't close */}
+                      <div
+                        className="relative max-h-[90vh] max-w-[90vw]"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <img
+                          src={proofUrl}
+                          alt="Payment proof receipt — full size"
+                          className="max-h-[85vh] max-w-[88vw] rounded-2xl object-contain shadow-2xl"
+                        />
+                        {/* Footer label */}
+                        <p className="mt-3 text-center text-xs text-white/60">
+                          Payment Proof · {draft.request.requestReferenceNumber} · Click outside or press × to close
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })() : null}
           </div>
         </div>
+
 
         <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6">
           <p className="text-base font-semibold text-[#1E1E2C]">
