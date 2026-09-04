@@ -28,7 +28,7 @@ async function generateAndStoreCertificatePdf(
   }
 
   const editableValues = buildCertificateReviewEditableValues(request);
-  const certificateHtml = buildCertificatePreviewHtmlFromEditableValues(
+  const certificateHtml = await buildCertificatePreviewHtmlFromEditableValues(
     certificate.certificateNumber,
     editableValues,
     certificate.dateOfIssuance,
@@ -92,23 +92,25 @@ export async function generateCertificatePdfForRequest(
     const generatedPdf = await generateAndStoreCertificatePdf(currentRequest);
 
     await db.$transaction(async (tx) => {
+      const previewHtml = await buildCertificatePreviewHtmlFromEditableValues(
+        certificate.certificateNumber,
+        buildCertificateReviewEditableValues(currentRequest),
+        certificate.dateOfIssuance,
+        {
+          studentTitlePrefix: currentRequest.studentTitlePrefix ?? null,
+          term: currentRequest.term ?? null,
+          purposeOfRequest: currentRequest.purposeOfRequest,
+          officialReceiptNumber:
+            currentRequest.officialReceiptNumber ?? null,
+          hasViolationRecord: currentRequest.hasViolationRecord,
+        },
+      );
+
       await tx.certificate.update({
         where: { id: certificate.id },
         data: {
           generatedPdfUrl: generatedPdf.generatedPdfUrl,
-          previewHtml: buildCertificatePreviewHtmlFromEditableValues(
-            certificate.certificateNumber,
-            buildCertificateReviewEditableValues(currentRequest),
-            certificate.dateOfIssuance,
-            {
-              studentTitlePrefix: currentRequest.studentTitlePrefix ?? null,
-              term: currentRequest.term ?? null,
-              purposeOfRequest: currentRequest.purposeOfRequest,
-              officialReceiptNumber:
-                currentRequest.officialReceiptNumber ?? null,
-              hasViolationRecord: currentRequest.hasViolationRecord,
-            },
-          ),
+          previewHtml,
         },
       });
 
@@ -151,7 +153,7 @@ export async function generateCertificatePdfForRequest(
     }
 
     return {
-      draft: buildCertificateReviewDraft(refreshedFailure),
+      draft: await buildCertificateReviewDraft(refreshedFailure),
     };
   }
 
@@ -162,6 +164,6 @@ export async function generateCertificatePdfForRequest(
   }
 
   return {
-    draft: buildCertificateReviewDraft(refreshed),
+    draft: await buildCertificateReviewDraft(refreshed),
   };
 }

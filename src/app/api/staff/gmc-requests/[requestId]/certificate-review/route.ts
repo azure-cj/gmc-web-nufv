@@ -246,7 +246,7 @@ export async function POST(
         }
 
         const normalizedReviewNotes = reviewNotes || null;
-        const previewHtml = buildCertificatePreviewHtmlFromEditableValues(
+        const previewHtml = await buildCertificatePreviewHtmlFromEditableValues(
           currentCertificate.certificateNumber,
           {
             studentFullName,
@@ -303,7 +303,7 @@ export async function POST(
           throw new Error("Unable to reload the certificate after editing.");
         }
 
-        return buildCertificateReviewDraft(refreshed);
+        return await buildCertificateReviewDraft(refreshed);
       }
 
       if (!rejectionReason) {
@@ -342,7 +342,7 @@ export async function POST(
         throw new Error("Unable to reload the certificate after rejection.");
       }
 
-      return buildCertificateReviewDraft(refreshed);
+      return await buildCertificateReviewDraft(refreshed);
     });
 
     if (action === "REJECT") {

@@ -85,7 +85,7 @@ function buildStudentFullName(request: {
     .join(" ");
 }
 
-function buildCertificatePreviewHtml(
+async function buildCertificatePreviewHtml(
   certificateNumber: string,
   values: CertificateReviewEditableValues,
   dateOfIssuance: Date,
@@ -96,8 +96,8 @@ function buildCertificatePreviewHtml(
     officialReceiptNumber: string | null;
     hasViolationRecord: boolean;
   },
-): string {
-  return buildGoodMoralCertificateHtml({
+): Promise<string> {
+  return await buildGoodMoralCertificateHtml({
     certificateNumber,
     studentFullName: values.studentFullName,
     studentId: values.studentIdNumber,
@@ -155,9 +155,9 @@ export function buildCertificateReviewEditableValues(
   };
 }
 
-export function buildCertificateReviewDraft(
+export async function buildCertificateReviewDraft(
   request: LoadedGeneratedCertificateReviewRequest,
-): CertificateReviewDraft {
+): Promise<CertificateReviewDraft> {
   const certificate = request.certificate;
   const editableValues = buildCertificateReviewEditableValues(request);
   const certificateNumber = certificate?.certificateNumber ?? "";
@@ -167,6 +167,19 @@ export function buildCertificateReviewDraft(
     entry.action === "CERTIFICATE_PRINTED_AND_RELEASED" ||
     entry.action === "CERTIFICATE_RELEASED_AND_EMAILED" ||
     entry.action === "CERTIFICATE_RELEASED_EMAIL_NOT_SENT",
+  );
+
+  const previewHtml = await buildCertificatePreviewHtml(
+    certificateNumber,
+    editableValues,
+    dateOfIssuance,
+    {
+      studentTitlePrefix: request.studentTitlePrefix ?? null,
+      term: request.term ?? null,
+      purposeOfRequest: request.purposeOfRequest,
+      officialReceiptNumber: request.officialReceiptNumber ?? null,
+      hasViolationRecord: request.hasViolationRecord,
+    },
   );
 
   return {
@@ -194,18 +207,7 @@ export function buildCertificateReviewDraft(
           academicYear: editableValues.academicYear,
           purposeOfCertificate: editableValues.purposeOfCertificate,
           generatedPdfUrl: certificate.generatedPdfUrl ?? null,
-          previewHtml: buildCertificatePreviewHtml(
-            certificateNumber,
-            editableValues,
-            dateOfIssuance,
-            {
-              studentTitlePrefix: request.studentTitlePrefix ?? null,
-              term: request.term ?? null,
-              purposeOfRequest: request.purposeOfRequest,
-              officialReceiptNumber: request.officialReceiptNumber ?? null,
-              hasViolationRecord: request.hasViolationRecord,
-            },
-          ),
+          previewHtml,
           dateOfIssuance: dateOfIssuance.toISOString(),
           authorizedSignatory: editableValues.authorizedSignatory,
           officeDesignation: editableValues.officeDesignation,
@@ -214,7 +216,7 @@ export function buildCertificateReviewDraft(
   };
 }
 
-export function buildCertificatePreviewHtmlFromEditableValues(
+export async function buildCertificatePreviewHtmlFromEditableValues(
   certificateNumber: string,
   values: CertificateReviewEditableValues,
   dateOfIssuance: Date,
@@ -225,6 +227,6 @@ export function buildCertificatePreviewHtmlFromEditableValues(
     officialReceiptNumber: string | null;
     hasViolationRecord: boolean;
   },
-): string {
-  return buildCertificatePreviewHtml(certificateNumber, values, dateOfIssuance, context);
+): Promise<string> {
+  return await buildCertificatePreviewHtml(certificateNumber, values, dateOfIssuance, context);
 }

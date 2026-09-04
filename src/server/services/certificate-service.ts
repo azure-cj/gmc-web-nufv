@@ -60,7 +60,7 @@ async function createCertificateFromLoadedRequest(
     input.authorizedSignatory || DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY;
   const officeDesignation =
     input.officeDesignation ?? DEFAULT_CERTIFICATE_OFFICE_DESIGNATION;
-  const previewHtml = buildGoodMoralCertificateHtml({
+  const previewHtml = await buildGoodMoralCertificateHtml({
     certificateNumber,
     studentFullName,
     studentId: studentIdNumber,

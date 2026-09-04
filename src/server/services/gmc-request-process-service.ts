@@ -89,13 +89,13 @@ function getReleaseDeliveryStatus(
   return latestReleaseAudit ? "PDF_AVAILABLE" : null;
 }
 
-export function buildGmcRequestProcessDraft(
+export async function buildGmcRequestProcessDraft(
   request: LoadedGeneratedCertificateReviewRequest,
   invoiceNumberDuplicate: {
     exists: boolean;
     requestReferenceNumber: string | null;
   } = { exists: false, requestReferenceNumber: null },
-): GmcRequestProcessDraft {
+): Promise<GmcRequestProcessDraft> {
   const certificate = request.certificate;
   const editable = buildCertificateReviewEditableValues(request);
   const certificateNumber = certificate?.certificateNumber ?? "";
@@ -141,7 +141,7 @@ export function buildGmcRequestProcessDraft(
           academicYear: editable.academicYear,
           purposeOfCertificate: editable.purposeOfCertificate,
           generatedPdfUrl: certificate.generatedPdfUrl ?? null,
-          previewHtml: buildCertificatePreviewHtmlFromEditableValues(
+          previewHtml: await buildCertificatePreviewHtmlFromEditableValues(
             certificateNumber,
             editable,
             dateOfIssuance,
@@ -377,7 +377,7 @@ export async function confirmGmcRequestProcess(
       auditNotes: "Certificate preview prepared in the guided review flow.",
     });
 
-    const previewHtml = buildCertificatePreviewHtmlFromEditableValues(
+    const previewHtml = await buildCertificatePreviewHtmlFromEditableValues(
       certificate.certificateNumber,
       editableValues,
       certificate.dateOfIssuance,
@@ -419,7 +419,7 @@ export async function confirmGmcRequestProcess(
       refreshed.officialReceiptNumber,
     );
 
-    return buildGmcRequestProcessDraft(refreshed, invoiceNumberDuplicate);
+    return await buildGmcRequestProcessDraft(refreshed, invoiceNumberDuplicate);
   });
 }
 
@@ -483,6 +483,6 @@ export async function rejectGmcRequestProcess(
       refreshed.officialReceiptNumber,
     );
 
-    return buildGmcRequestProcessDraft(refreshed, invoiceNumberDuplicate);
+    return await buildGmcRequestProcessDraft(refreshed, invoiceNumberDuplicate);
   });
 }

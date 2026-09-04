@@ -55,7 +55,7 @@ export default async function StaffGmcCertificateReviewPage({
 
   return (
     <StaffCertificateReviewClient
-      initialDraft={buildCertificateReviewDraft(request)}
+      initialDraft={await buildCertificateReviewDraft(request)}
       returnTo={returnTo}
     />
   );

@@ -117,7 +117,7 @@ async function loadProcessDraft(requestId: string) {
     request.officialReceiptNumber,
   );
 
-  return { draft: buildGmcRequestProcessDraft(request, invoiceNumberDuplicate) };
+  return { draft: await buildGmcRequestProcessDraft(request, invoiceNumberDuplicate) };
 }
 
 export async function GET(

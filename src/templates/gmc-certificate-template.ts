@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import { PurposeOfRequest } from "@prisma/client";
 import { formatBusinessDate, formatPurposeRemarks } from "@/lib/gmc-request";
 
@@ -6,6 +8,51 @@ export const DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY =
 
 export const DEFAULT_CERTIFICATE_OFFICE_DESIGNATION =
   process.env.GMC_CERTIFICATE_OFFICE_DESIGNATION ?? "SDO Officer-in-Charge";
+
+/* ── Signature image lookup ───────────────────────────────────────── */
+
+const SIGNATURE_IMAGE_BASE_DIR = path.join(
+  process.cwd(),
+  "public",
+  "images",
+  "signatures",
+);
+
+const SIGNATURE_IMAGE_LOOKUP: Record<string, string> = {
+  "SHEILA MARIE R. RELLES, MA": path.join(SIGNATURE_IMAGE_BASE_DIR, "smr-esig.jpg"),
+};
+
+const signatureImageCache = new Map<string, string | null>();
+
+async function loadSignatureImageBase64(
+  authorizedSignatory: string,
+): Promise<string | null> {
+  const cacheKey = authorizedSignatory.trim();
+  if (signatureImageCache.has(cacheKey)) {
+    return signatureImageCache.get(cacheKey)!;
+  }
+
+  const explicitPath = process.env.GMC_CERTIFICATE_SIGNATURE_IMAGE_PATH;
+  const lookupPath = SIGNATURE_IMAGE_LOOKUP[cacheKey];
+  const filePath = explicitPath || lookupPath || null;
+
+  if (!filePath) {
+    signatureImageCache.set(cacheKey, null);
+    return null;
+  }
+
+  try {
+    const buffer = await fs.readFile(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    const mime = ext === ".png" ? "image/png" : "image/jpeg";
+    const dataUri = `data:${mime};base64,${buffer.toString("base64")}`;
+    signatureImageCache.set(cacheKey, dataUri);
+    return dataUri;
+  } catch {
+    signatureImageCache.set(cacheKey, null);
+    return null;
+  }
+}
 
 export interface GoodMoralCertificateTemplateInput {
   certificateNumber: string;
@@ -51,9 +98,9 @@ export function buildCertificateTitlePrefixLine(
   return `${prefix} ${studentFullName}`.trim();
 }
 
-export function buildGoodMoralCertificateHtml(
+export async function buildGoodMoralCertificateHtml(
   input: GoodMoralCertificateTemplateInput,
-): string {
+): Promise<string> {
   const dateOfIssuance = formatBusinessDate(input.dateOfIssuance);
   const titlePrefix = buildCertificateTitlePrefixLine(
     input.studentTitlePrefix,
@@ -61,6 +108,7 @@ export function buildGoodMoralCertificateHtml(
   );
   const purposeRemarks = formatPurposeRemarks(input.purposeOfRequest);
   const receiptNumber = input.officialReceiptNumber?.trim() || "N/A";
+  const signatureDataUri = await loadSignatureImageBase64(input.authorizedSignatory);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -173,6 +221,13 @@ export function buildGoodMoralCertificateHtml(
         margin: 0;
       }
 
+      .signatory-image {
+        display: block;
+        max-width: 144px;
+        height: auto;
+        margin: 0 auto 6px;
+      }
+
       .footer-block {
         margin-top: 18px;
         font-size: 11.5pt;
@@ -238,7 +293,7 @@ export function buildGoodMoralCertificateHtml(
       <p class="paragraph">
         It is further certified that ${escapeHtml(titlePrefix)} ${input.hasViolationRecord
           ? `has a derogatory record and/or has been subjected to disciplinary action while a student at university.`
-          : `is of good moral character and has no derogatory records, nor has he been subjected to any disciplinary action while a student at university.`}
+          : `is of good moral character and has no derogatory records while a student at the University.`}
       </p>
 
       <div class="spacer-before-certified-by"></div>
@@ -246,6 +301,7 @@ export function buildGoodMoralCertificateHtml(
       <p class="certified-by">Certified by</p>
 
       <div class="signature-block">
+        ${signatureDataUri ? `<img class="signatory-image" src="${signatureDataUri}" alt="Signature of ${escapeHtml(input.authorizedSignatory)}" />` : ""}
         <p class="signatory-name">${escapeHtml(input.authorizedSignatory)}</p>
         <p class="signatory-title">${escapeHtml(input.officeDesignation)}</p>
       </div>

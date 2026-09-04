@@ -35,7 +35,7 @@ export async function regenerateCertificatePdfOnDemand(fileReference: string): P
 
   const html =
     certificate.previewHtml ||
-    buildGoodMoralCertificateHtml({
+    (await buildGoodMoralCertificateHtml({
       certificateNumber: certificate.certificateNumber,
       studentFullName:
         certificate.studentFullName ||
@@ -56,7 +56,7 @@ export async function regenerateCertificatePdfOnDemand(fileReference: string): P
         DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY,
       officeDesignation:
         certificate.officeDesignation || DEFAULT_CERTIFICATE_OFFICE_DESIGNATION,
-    });
+    }));
 
   const pdfBuffer = await renderHtmlToPdfBuffer(html);
 
