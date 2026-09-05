@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import QRCode from "qrcode";
 import { PurposeOfRequest } from "@prisma/client";
 import { formatBusinessDate, formatPurposeRemarks } from "@/lib/gmc-request";
 
@@ -8,6 +9,18 @@ export const DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY =
 
 export const DEFAULT_CERTIFICATE_OFFICE_DESIGNATION =
   process.env.GMC_CERTIFICATE_OFFICE_DESIGNATION ?? "SDO Officer-in-Charge";
+
+/* ── Verification URL ─────────────────────────────────────────────── */
+
+export function buildCertificateVerificationUrl(verificationToken: string): string {
+  const baseUrl = (
+    process.env.GMC_CERTIFICATE_VERIFICATION_BASE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+    "http://localhost:3000"
+  ).replace(/\/+$/, "");
+
+  return `${baseUrl}/verify/${verificationToken}`;
+}
 
 /* ── Signature image lookup ───────────────────────────────────────── */
 
@@ -86,6 +99,7 @@ export interface GoodMoralCertificateTemplateInput {
   dateOfIssuance: Date;
   authorizedSignatory: string;
   officeDesignation: string;
+  verificationToken: string | null;
 }
 
 function escapeHtml(value: string): string {
@@ -127,6 +141,18 @@ export async function buildGoodMoralCertificateHtml(
   const purposeRemarks = formatPurposeRemarks(input.purposeOfRequest);
   const receiptNumber = input.officialReceiptNumber?.trim() || "N/A";
   const signatureDataUri = await loadSignatureImageBase64(input.authorizedSignatory);
+
+  const verificationToken = input.verificationToken?.trim();
+  const verificationUrl = verificationToken
+    ? buildCertificateVerificationUrl(verificationToken)
+    : null;
+  const verificationQrDataUri = verificationUrl
+    ? await QRCode.toDataURL(verificationUrl, {
+        errorCorrectionLevel: "M",
+        margin: 1,
+        width: 240,
+      })
+    : null;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -246,11 +272,31 @@ export async function buildGoodMoralCertificateHtml(
       }
 
       .footer-block {
-        margin-top: 18px;
         font-size: 11.5pt;
         line-height: 1.3;
         break-inside: avoid;
         page-break-inside: avoid;
+      }
+
+      .sealed-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 18px;
+        margin-top: 18px;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .qr-block {
+        flex: 0 0 auto;
+        width: 50px;
+      }
+
+      .qr-image {
+        display: block;
+        width: 50px;
+        height: 50px;
       }
 
       .footer-line {
@@ -322,10 +368,17 @@ export async function buildGoodMoralCertificateHtml(
         <p class="signatory-title">${escapeHtml(input.officeDesignation)}</p>
       </div>
 
-      <div class="footer-block">
-        <p class="footer-line receipt-number">Student Official Receipt Number ${escapeHtml(receiptNumber)}</p>
-        <p class="footer-note">For verification, please directly contact the Discipline Office*</p>
-        <p class="footer-note">Not Valid Without School's Dry Seal*</p>
+      <div class="sealed-row">
+        <div class="footer-block">
+          <p class="footer-line receipt-number">Student Official Receipt Number ${escapeHtml(receiptNumber)}</p>
+          <p class="footer-note">For verification, please directly contact the Discipline Office*</p>
+          <p class="footer-note">Not Valid Without School's Dry Seal*</p>
+        </div>
+        ${verificationToken && verificationQrDataUri
+          ? `<a class="qr-block" href="${escapeHtml(verificationUrl!)}" aria-label="Scan to verify this certificate">
+          <img class="qr-image" src="${verificationQrDataUri}" alt="Scan this QR code to verify the certificate" />
+        </a>`
+          : ""}
       </div>
 
       <p class="remarks">

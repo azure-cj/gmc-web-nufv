@@ -62,6 +62,7 @@ async function buildCertificatePreviewHtml(
     purposeOfRequest: PurposeOfRequest;
     officialReceiptNumber: string | null;
     hasViolationRecord: boolean;
+    verificationToken?: string | null;
   },
 ): Promise<string> {
   return await buildGoodMoralCertificateHtml({
@@ -80,6 +81,7 @@ async function buildCertificatePreviewHtml(
       values.authorizedSignatory || DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY,
     officeDesignation:
       values.officeDesignation || DEFAULT_CERTIFICATE_OFFICE_DESIGNATION,
+    verificationToken: context.verificationToken ?? null,
   });
 }
 
@@ -132,6 +134,7 @@ export async function buildCertificatePreviewHtmlFromEditableValues(
     purposeOfRequest: PurposeOfRequest;
     officialReceiptNumber: string | null;
     hasViolationRecord: boolean;
+    verificationToken?: string | null;
   },
 ): Promise<string> {
   return await buildCertificatePreviewHtml(certificateNumber, values, dateOfIssuance, context);

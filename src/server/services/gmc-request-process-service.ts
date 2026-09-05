@@ -109,6 +109,7 @@ export async function buildGmcRequestProcessDraft(
     purposeOfRequest: request.purposeOfRequest,
     officialReceiptNumber: request.officialReceiptNumber ?? null,
     hasViolationRecord: request.hasViolationRecord,
+    verificationToken: certificate?.verificationToken ?? null,
   };
 
   return {
@@ -522,10 +523,11 @@ export async function releaseGmcRequestProcess(
           validated.editableValues,
           dateOfIssuance,
           {
-            ...validated.previewContext,
-            studentTitlePrefix: currentRequest.studentTitlePrefix ?? null,
-          },
-        );
+...validated.previewContext,
+              studentTitlePrefix: currentRequest.studentTitlePrefix ?? null,
+              verificationToken: certificate.verificationToken,
+            },
+          );
         const pdfBuffer = await renderCertificateHtmlToPdfBuffer(previewHtml);
         const storedPdf = await getStorageService().upload({
           buffer: pdfBuffer,

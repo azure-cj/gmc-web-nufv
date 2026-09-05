@@ -56,6 +56,7 @@ export async function regenerateCertificatePdfOnDemand(fileReference: string): P
         DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY,
       officeDesignation:
         certificate.officeDesignation || DEFAULT_CERTIFICATE_OFFICE_DESIGNATION,
+      verificationToken: certificate.verificationToken ?? null,
     }));
 
   const pdfBuffer = await renderHtmlToPdfBuffer(html);

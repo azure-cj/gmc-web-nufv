@@ -43,6 +43,11 @@ enum NumberingKind {
   CERTIFICATE_NUMBER
 }
 
+enum CertificateStatus {
+  ACTIVE
+  VOIDED
+}
+
 model Student {
   studentId       String       @id
   firstName       String
@@ -105,6 +110,10 @@ model Certificate {
   dateOfIssuance     DateTime      @default(now())
   authorizedSignatory String
   officeDesignation   String        @default("Discipline Office")
+  verificationToken   String?       @unique
+  status              CertificateStatus @default(ACTIVE)
+
+  @@index([status])
 }
 
 model StaffUser {
@@ -174,4 +183,12 @@ model SystemSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model VerificationLookup {
+  id        String   @id @default(uuid()) @db.Uuid
+  ipHash    String
+  createdAt DateTime @default(now())
+
+  @@index([ipHash, createdAt])
 }

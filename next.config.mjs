@@ -10,7 +10,10 @@ const nextConfig = {
   // Externalization keeps Chromium's relative asset lookup intact; explicit tracing
   // is also required so Vercel includes the package's compressed binaries in the function.
   outputFileTracingIncludes: {
-    "/api/staff/gmc-requests/[requestId]/certificate-review": [
+    "/api/staff/gmc-requests/[requestId]/process": [
+      "./.vercel-chromium-bin/**",
+    ],
+    "/api/private-files": [
       "./.vercel-chromium-bin/**",
     ],
   },

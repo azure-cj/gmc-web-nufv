@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   type Certificate,
   type Prisma,
@@ -52,6 +53,7 @@ async function createCertificateFromLoadedRequest(
   }
 
   const certificateNumber = await createCertificateNumber(db, dateOfIssuance);
+  const verificationToken = randomUUID();
   const studentFullName = buildStudentFullName(request);
   const studentIdNumber = request.studentId;
   const courseProgram = request.studentCourseProgram;
@@ -74,12 +76,14 @@ async function createCertificateFromLoadedRequest(
     dateOfIssuance,
     authorizedSignatory,
     officeDesignation,
+    verificationToken,
   });
 
   const certificate = await db.certificate.create({
     data: {
       gmcRequestId: request.id,
       certificateNumber,
+      verificationToken,
       studentFullName,
       studentIdNumber,
       courseProgram,
