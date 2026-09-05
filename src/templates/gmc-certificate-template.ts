@@ -211,7 +211,7 @@ export async function buildGoodMoralCertificateHtml(
       body {
         height: 11in;
         margin: 0;
-        padding: 1.5in 0.72in 0.9in;
+        padding: 2.15in 0.72in 0.88in;
         color: #111111;
         font-family: "Times New Roman", Times, serif;
         overflow: hidden;
@@ -227,8 +227,8 @@ export async function buildGoodMoralCertificateHtml(
       }
 
       .sheet {
-        height: 8.6in;
-        max-height: 8.6in;
+        height: 7.6in;
+        max-height: 7.6in;
         overflow: hidden;
       }
 
@@ -386,7 +386,7 @@ export async function buildGoodMoralCertificateHtml(
       @media print {
         body {
           height: 11in;
-          padding: 1.5in 0.72in 0.9in;
+          padding: 2.15in 0.72in 0.88in;
         }
       }
     </style>
@@ -425,7 +425,6 @@ export async function buildGoodMoralCertificateHtml(
         <div class="footer-block">
           <p class="footer-line receipt-number">Student Official Receipt Number ${escapeHtml(receiptNumber)}</p>
           <p class="footer-note">For verification, please directly contact the Discipline Office*</p>
-          <p class="footer-note">Not Valid Without School's Dry Seal*</p>
         </div>
         ${verificationToken && verificationQrDataUri
           ? `<div class="qr-block">

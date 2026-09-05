@@ -17,8 +17,10 @@ const BROWSER_CANDIDATES = [
 ];
 
 const LETTERHEAD_METRICS = {
-  headerBottomPx: Math.ceil((129 / 1024) * 1056), // top graphic band ends ~1.39in
-  footerBarTopPx: Math.floor((1003 / 1024) * 1056), // footer bar starts ~10.37in
+  // letternew.jpg is 1703x2420, rendered stretched to the 816x1056 letter page
+  headerBottomPx: Math.ceil((450 / 2420) * 1056), // all top graphics end ~2.05in
+  accentLineTopPx: Math.ceil((2174 / 2420) * 1056), // gold accent line starts ~9.88in
+  footerBarTopPx: Math.ceil((2236 / 2420) * 1056), // address/contact bar starts ~10.16in
 };
 
 const TOKEN = "test-verification-token-0001";
@@ -134,14 +136,29 @@ for (const testCase of cases) {
   const qrCaption = html.includes(
     "Scan this QR code to verify this certificate's authenticity.",
   );
+  const drySealGone = !html.includes("Not Valid Without School's Dry Seal*");
+  const receiptLineKept = html.includes("Student Official Receipt Number");
+  const verificationLineKept = html.includes(
+    "For verification, please directly contact the Discipline Office*",
+  );
+
+  if (!drySealGone) {
+    issues.push("'Not Valid Without School's Dry Seal*' footer line still present");
+  }
+  if (!receiptLineKept) {
+    issues.push("receipt number footer line missing");
+  }
+  if (!verificationLineKept) {
+    issues.push("'For verification...' footer line missing");
+  }
 
   if (pageCount !== 1) {
     issues.push(`pdf page count = ${pageCount}`);
   }
 
-  if (layout.dateLineTop < LETTERHEAD_METRICS.headerBottomPx) {
+  if (layout.dateLineTop < LETTERHEAD_METRICS.headerBottomPx + 8) {
     issues.push(
-      `date line (top=${layout.dateLineTop.toFixed(1)}px) overlaps letterhead header (safe below ${LETTERHEAD_METRICS.headerBottomPx}px)`,
+      `date line (top=${layout.dateLineTop.toFixed(1)}px) too close to letterhead header graphics (header ends at ${LETTERHEAD_METRICS.headerBottomPx}px)`,
     );
   }
 
@@ -151,9 +168,15 @@ for (const testCase of cases) {
     );
   }
 
-  if (layout.remarksBottom > LETTERHEAD_METRICS.footerBarTopPx) {
+  if (layout.remarksBottom > LETTERHEAD_METRICS.accentLineTopPx - 8) {
     issues.push(
-      `remarks bottom (${layout.remarksBottom.toFixed(1)}px) crosses letterhead footer bar (starts ${LETTERHEAD_METRICS.footerBarTopPx}px)`,
+      `remarks bottom (${layout.remarksBottom.toFixed(1)}px) crosses the gold accent line (starts ${LETTERHEAD_METRICS.accentLineTopPx}px)`,
+    );
+  }
+
+  if (layout.sheetBottom > LETTERHEAD_METRICS.accentLineTopPx - 4) {
+    issues.push(
+      `sheet bottom (${layout.sheetBottom.toFixed(1)}px) crosses the gold accent line (starts ${LETTERHEAD_METRICS.accentLineTopPx}px)`,
     );
   }
 
@@ -167,6 +190,14 @@ for (const testCase of cases) {
     if (layout.qrBlockBottom !== null && layout.qrBlockBottom > layout.sheetBottom + 0.5) {
       issues.push(
         `qr block bottom (${layout.qrBlockBottom.toFixed(1)}px) exceeds sheet bottom`,
+      );
+    }
+    if (
+      layout.qrBlockBottom !== null &&
+      layout.qrBlockBottom > LETTERHEAD_METRICS.accentLineTopPx - 8
+    ) {
+      issues.push(
+        `qr block bottom (${layout.qrBlockBottom.toFixed(1)}px) crosses the gold accent line (starts ${LETTERHEAD_METRICS.accentLineTopPx}px)`,
       );
     }
     if (
