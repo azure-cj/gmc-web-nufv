@@ -25,9 +25,8 @@ export default async function StaffGmcRequestsPage({
   return (
     <StaffRequestsWorkspace
       title="GMC Requests"
-      description="Search and review incoming Good Moral Certificate requests. Pending requests are processed through the guided 3-step review flow."
+      description="Search and review incoming Good Moral Certificate requests. Pending requests are processed through the guided release flow."
       basePath="/staff/gmc-requests"
-      detailBasePath="/staff/gmc-requests"
       data={data}
       filters={filters}
     />

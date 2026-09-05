@@ -4,20 +4,26 @@ import { consoleEmailService } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { loadValidatedStaffSessionFromRequest } from "@/lib/staff-session";
 import { loadGeneratedCertificateReviewRequest } from "@/server/services/certificate-review-service";
-import { generateCertificatePdfForRequest } from "@/server/services/certificate-release-service";
 import {
   buildGmcRequestProcessDraft,
   confirmGmcRequestProcess,
+  discardGmcRequestProcess,
   findDuplicateInvoiceRequest,
   rejectGmcRequestProcess,
+  releaseGmcRequestProcess,
 } from "@/server/services/gmc-request-process-service";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-type ProcessAction = "CONFIRM" | "REJECT" | "RELEASE";
+type ProcessAction = "CONFIRM" | "REJECT" | "RELEASE" | "WIZARD_DISCARDED";
 
-const PROCESS_ACTIONS = new Set<ProcessAction>(["CONFIRM", "REJECT", "RELEASE"]);
+const PROCESS_ACTIONS = new Set<ProcessAction>([
+  "CONFIRM",
+  "REJECT",
+  "RELEASE",
+  "WIZARD_DISCARDED",
+]);
 
 const CERTIFICATE_PURPOSE_OPTIONS = new Set([
   "Transfer Out",
@@ -306,6 +312,17 @@ export async function POST(
   if (action === "RELEASE") {
     const confirmed = body.confirmed === true;
     const reviewNotes = asText(body.reviewNotes);
+    const studentFullName = asText(body.studentFullName);
+    const studentIdNumber = asText(body.studentIdNumber);
+    const courseProgram = asText(body.courseProgram);
+    const academicYear = asText(body.academicYear);
+    const term = asText(body.term);
+    const purposeOfCertificate = asText(body.purposeOfCertificate);
+    const officialReceiptNumber = asText(body.officialReceiptNumber);
+    const hasViolationRecord =
+      body.hasViolationRecord === true || body.hasViolationRecord === false
+        ? body.hasViolationRecord
+        : null;
 
     if (!confirmed) {
       return validationError(
@@ -314,10 +331,67 @@ export async function POST(
       );
     }
 
+    const releaseFieldErrors: Record<string, string> = {};
+
+    if (!studentFullName) {
+      releaseFieldErrors.studentFullName = "Student full name is required.";
+    }
+
+    if (!studentIdNumber) {
+      releaseFieldErrors.studentIdNumber = "Student ID number is required.";
+    } else if (!/^\d{4}-\d{1,10}$/.test(studentIdNumber)) {
+      releaseFieldErrors.studentIdNumber =
+        "Student ID must be in the format YEAR-NUMBER (4-digit year, hyphen, then up to 10 digits).";
+    }
+
+    if (!courseProgram) {
+      releaseFieldErrors.courseProgram = "Course / program is required.";
+    }
+
+    if (!academicYear) {
+      releaseFieldErrors.academicYear = "Academic year is required.";
+    }
+
+    if (!term) {
+      releaseFieldErrors.term = "Term is required.";
+    }
+
+    if (!purposeOfCertificate) {
+      releaseFieldErrors.purposeOfCertificate =
+        "Purpose of certificate is required.";
+    } else if (!CERTIFICATE_PURPOSE_OPTIONS.has(purposeOfCertificate)) {
+      releaseFieldErrors.purposeOfCertificate =
+        "Select a valid purpose of certificate.";
+    }
+
+    if (!officialReceiptNumber) {
+      releaseFieldErrors.officialReceiptNumber =
+        "Official receipt number is required.";
+    }
+
+    if (Object.keys(releaseFieldErrors).length > 0) {
+      return validationError(releaseFieldErrors);
+    }
+
+    if (hasViolationRecord === null) {
+      return validationError(
+        { hasViolationRecord: "Choose whether the student has a violation record." },
+        "Please choose whether the student has a violation record.",
+      );
+    }
+
     try {
-      await generateCertificatePdfForRequest(prisma, {
+      await releaseGmcRequestProcess(prisma, {
         requestId,
         staffUserId: session.staffUser.id,
+        studentFullName,
+        studentIdNumber,
+        courseProgram,
+        academicYear,
+        term,
+        purposeOfCertificate,
+        officialReceiptNumber,
+        hasViolationRecord,
         reviewNotes: reviewNotes || null,
       });
 
@@ -330,18 +404,20 @@ export async function POST(
         );
       }
 
-      if (draft.request.status === "DELIVERY_FAILED") {
-        return NextResponse.json(
-          {
-            formError:
-              "The certificate PDF could not be generated. Review the record and try again.",
-            draft,
-          },
-          { status: 500 },
-        );
-      }
-
       return NextResponse.json({ draft });
+    } catch (error) {
+      return handleRouteError(error);
+    }
+  }
+
+  if (action === "WIZARD_DISCARDED") {
+    try {
+      await discardGmcRequestProcess(prisma, {
+        requestId,
+        staffUserId: session.staffUser.id,
+      });
+
+      return NextResponse.json({ ok: true });
     } catch (error) {
       return handleRouteError(error);
     }

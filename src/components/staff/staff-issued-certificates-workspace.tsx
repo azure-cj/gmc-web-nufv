@@ -9,16 +9,15 @@ import {
 } from "@/lib/gmc-request";
 import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file-url";
 import {
-  STAFF_REQUEST_STATUSES,
   type StaffDashboardFilters,
 } from "@/server/services/staff-dashboard-service";
 import type { IssuedCertificatesData } from "@/server/services/issued-certificates-service";
+import StaffRequestDetailModal from "@/components/staff/staff-request-detail-modal";
 
 interface StaffIssuedCertificatesWorkspaceProps {
   data: IssuedCertificatesData;
   filters: StaffDashboardFilters;
   basePath?: string;
-  detailBasePath?: string;
 }
 
 function fullName(
@@ -34,15 +33,9 @@ function statusBadgeClass(status: string): string {
   switch (status) {
     case "RELEASED":
       return "border-[#34B1AA]/40 bg-[#34B1AA]/15 text-[#1E746F]";
-    case "GENERATED":
-      return "border-[#3B8FF3]/40 bg-[#3B8FF3]/15 text-[#1E589B]";
-    case "APPROVED":
-      return "border-[#34B1AA]/40 bg-[#34B1AA]/15 text-[#1E746F]";
     case "PENDING":
       return "border-[#E0B50F]/40 bg-[#E0B50F]/15 text-[#8F7306]";
     case "REJECTED":
-    case "RETURNED":
-    case "DELIVERY_FAILED":
       return "border-[#E05252]/40 bg-[#E05252]/15 text-[#9B2C2C]";
     default:
       return "border-[#8A94A6]/40 bg-[#8A94A6]/15 text-[#4A5260]";
@@ -53,7 +46,6 @@ export default function StaffIssuedCertificatesWorkspace({
   data,
   filters,
   basePath = "/staff/issued-certificates",
-  detailBasePath = "/staff/gmc-requests",
 }: StaffIssuedCertificatesWorkspaceProps) {
   const showingStart =
     data.pagination.totalResults === 0
@@ -66,7 +58,6 @@ export default function StaffIssuedCertificatesWorkspace({
           data.pagination.page * data.pagination.pageSize,
           data.pagination.totalResults,
         );
-  const currentReturnTo = buildStaffDashboardUrl(basePath, filters);
   const previousPageHref = data.pagination.hasPreviousPage
     ? buildStaffDashboardUrl(basePath, filters, {
         page: data.pagination.page - 1,
@@ -209,13 +200,6 @@ export default function StaffIssuedCertificatesWorkspace({
               >
                 <option value="RELEASED">Released (Completed)</option>
                 <option value="all">All statuses</option>
-                {STAFF_REQUEST_STATUSES.filter(
-                  (status) => status !== "all" && status !== "RELEASED",
-                ).map((status) => (
-                  <option key={status} value={status}>
-                    {formatRequestStatusLabel(status)}
-                  </option>
-                ))}
               </select>
             </label>
 
@@ -283,8 +267,6 @@ export default function StaffIssuedCertificatesWorkspace({
                   );
                   const certNumber =
                     row.certificate?.certificateNumber || "Pending";
-                  const detailHref = `${detailBasePath}/${row.id}?returnTo=${encodeURIComponent(currentReturnTo)}`;
-                  const reviewHref = `${detailBasePath}/${row.id}/review?returnTo=${encodeURIComponent(currentReturnTo)}`;
                   const downloadFileRef =
                     row.certificate?.generatedPdfUrl || certNumber;
                   const downloadUrl = getPrivateStorageDownloadUrl(
@@ -389,38 +371,16 @@ export default function StaffIssuedCertificatesWorkspace({
                               </svg>
                               View / Download Certificate
                             </a>
-                            <Link
-                              href={detailHref}
-                              className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
-                            >
-                              Details
-                            </Link>
-                          </div>
-                        ) : row.status === "GENERATED" ||
-                          row.status === "DELIVERY_FAILED" ? (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Link
-                              href={reviewHref}
-                              className="inline-flex rounded-xl border border-[#3B8FF3]/40 bg-[#3B8FF3]/15 px-3.5 py-2 text-xs font-semibold text-[#1E589B] transition hover:bg-[#3B8FF3]/25"
-                            >
-                              {row.status === "DELIVERY_FAILED"
-                                ? "Retry Generation"
-                                : "Review Certificate"}
-                            </Link>
-                            <Link
-                              href={detailHref}
-                              className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
-                            >
-                              Details
-                            </Link>
+                            <StaffRequestDetailModal
+                              requestId={row.id}
+                              requestReferenceNumber={row.requestReferenceNumber}
+                            />
                           </div>
                         ) : (
-                          <Link
-                            href={detailHref}
-                            className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
-                          >
-                            View Details
-                          </Link>
+                          <StaffRequestDetailModal
+                            requestId={row.id}
+                            requestReferenceNumber={row.requestReferenceNumber}
+                          />
                         )}
                       </td>
                     </tr>

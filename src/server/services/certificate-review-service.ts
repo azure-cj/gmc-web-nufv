@@ -1,6 +1,4 @@
 import {
-  type GmcRequestStatus,
-  type PaymentVerificationStatus,
   type Prisma,
   type PrismaClient,
   type PurposeOfRequest,
@@ -29,37 +27,6 @@ export type LoadedGeneratedCertificateReviewRequest = Prisma.GmcRequestGetPayloa
     };
   };
 }>;
-
-export interface CertificateReviewDraft {
-  request: {
-    id: string;
-    requestReferenceNumber: string;
-    status: GmcRequestStatus;
-    studentEmail: string;
-    purposeOfRequest: PurposeOfRequest;
-    officialReceiptNumber: string | null;
-    paymentVerificationStatus: PaymentVerificationStatus;
-    reviewNotes: string | null;
-    dateSubmitted: string;
-    dateReleased: string | null;
-    reviewedByName: string | null;
-    releaseDeliveryStatus: "PDF_AVAILABLE" | null;
-  };
-  certificate: {
-    id: string;
-    certificateNumber: string;
-    studentFullName: string;
-    studentIdNumber: string;
-    courseProgram: string;
-    academicYear: string;
-    purposeOfCertificate: string;
-    generatedPdfUrl: string | null;
-    previewHtml: string;
-    dateOfIssuance: string;
-    authorizedSignatory: string;
-    officeDesignation: string;
-  } | null;
-}
 
 export interface CertificateReviewEditableValues {
   studentFullName: string;
@@ -152,67 +119,6 @@ export function buildCertificateReviewEditableValues(
       certificate?.authorizedSignatory ?? DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY,
     officeDesignation:
       certificate?.officeDesignation ?? DEFAULT_CERTIFICATE_OFFICE_DESIGNATION,
-  };
-}
-
-export async function buildCertificateReviewDraft(
-  request: LoadedGeneratedCertificateReviewRequest,
-): Promise<CertificateReviewDraft> {
-  const certificate = request.certificate;
-  const editableValues = buildCertificateReviewEditableValues(request);
-  const certificateNumber = certificate?.certificateNumber ?? "";
-  const dateOfIssuance = certificate?.dateOfIssuance ?? request.dateSubmitted;
-  const latestReleaseAudit = request.auditLogs.find((entry) =>
-    entry.action === "CERTIFICATE_APPROVED_AND_RELEASED_PDF_DOWNLOAD" ||
-    entry.action === "CERTIFICATE_PRINTED_AND_RELEASED" ||
-    entry.action === "CERTIFICATE_RELEASED_AND_EMAILED" ||
-    entry.action === "CERTIFICATE_RELEASED_EMAIL_NOT_SENT",
-  );
-
-  const previewHtml = await buildCertificatePreviewHtml(
-    certificateNumber,
-    editableValues,
-    dateOfIssuance,
-    {
-      studentTitlePrefix: request.studentTitlePrefix ?? null,
-      term: request.term ?? null,
-      purposeOfRequest: request.purposeOfRequest,
-      officialReceiptNumber: request.officialReceiptNumber ?? null,
-      hasViolationRecord: request.hasViolationRecord,
-    },
-  );
-
-  return {
-    request: {
-      id: request.id,
-      requestReferenceNumber: request.requestReferenceNumber,
-      status: request.status,
-      studentEmail: request.studentEmail,
-      purposeOfRequest: request.purposeOfRequest,
-      officialReceiptNumber: request.officialReceiptNumber ?? null,
-      paymentVerificationStatus: request.paymentVerificationStatus,
-      reviewNotes: request.reviewNotes ?? null,
-      dateSubmitted: request.dateSubmitted.toISOString(),
-      dateReleased: request.dateReleased ? request.dateReleased.toISOString() : null,
-      reviewedByName: request.reviewedBy?.name ?? null,
-      releaseDeliveryStatus: latestReleaseAudit ? "PDF_AVAILABLE" : null,
-    },
-    certificate: certificate
-      ? {
-          id: certificate.id,
-          certificateNumber,
-          studentFullName: editableValues.studentFullName,
-          studentIdNumber: editableValues.studentIdNumber,
-          courseProgram: editableValues.courseProgram,
-          academicYear: editableValues.academicYear,
-          purposeOfCertificate: editableValues.purposeOfCertificate,
-          generatedPdfUrl: certificate.generatedPdfUrl ?? null,
-          previewHtml,
-          dateOfIssuance: dateOfIssuance.toISOString(),
-          authorizedSignatory: editableValues.authorizedSignatory,
-          officeDesignation: editableValues.officeDesignation,
-        }
-      : null,
   };
 }
 

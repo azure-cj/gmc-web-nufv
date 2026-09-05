@@ -15,14 +15,10 @@ const PURPOSE_LABELS: Record<PurposeOfRequest, string> = {
   OTHER: "Other",
 };
 
-const STATUS_LABELS: Record<GmcRequestStatus, string> = {
+const STATUS_LABELS: Partial<Record<GmcRequestStatus, string>> = {
   PENDING: "Pending",
-  APPROVED: "Approved",
-  GENERATED: "Generated",
   REJECTED: "Rejected",
-  RETURNED: "Returned",
   RELEASED: "Released",
-  DELIVERY_FAILED: "Delivery Failed - Retry",
 };
 
 const PAYMENT_VERIFICATION_LABELS: Record<PaymentVerificationStatus, string> = {

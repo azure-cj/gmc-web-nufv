@@ -11,6 +11,7 @@ import {
 } from "@/lib/records-archive-query";
 import { formatRequestStatusLabel } from "@/lib/gmc-request";
 import { getPrivateStorageDownloadUrl } from "@/lib/storage/private-file-url";
+import StaffRequestDetailModal from "@/components/staff/staff-request-detail-modal";
 import type {
   RecordsArchivePageData,
   RecordsArchiveReportData,
@@ -28,17 +29,10 @@ function statusBadgeClass(status: string): string {
   switch (status) {
     case "PENDING":
       return "border-[#E0B50F]/40 bg-[#E0B50F]/15 text-[#8F7306]";
-    case "APPROVED":
-      return "border-[#34B1AA]/40 bg-[#34B1AA]/15 text-[#1E746F]";
-    case "GENERATED":
-      return "border-[#3B8FF3]/40 bg-[#3B8FF3]/15 text-[#1E589B]";
-    case "RETURNED":
     case "REJECTED":
       return "border-[#E05252]/40 bg-[#E05252]/15 text-[#9B2C2C]";
     case "RELEASED":
       return "border-[#34B1AA]/40 bg-[#34B1AA]/15 text-[#1E746F]";
-    case "DELIVERY_FAILED":
-      return "border-[#E05252]/40 bg-[#E05252]/15 text-[#9B2C2C]";
     default:
       return "border-[#8A94A6]/40 bg-[#8A94A6]/15 text-[#4A5260]";
   }
@@ -125,7 +119,7 @@ export default function StaffRecordsArchiveWorkspace({
             </p>
           </div>
 
-          <div className="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4 w-full lg:w-auto">
+          <div className="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-3 w-full lg:w-auto">
             {[
               {
                 label: "Records on Page",
@@ -144,12 +138,6 @@ export default function StaffRecordsArchiveWorkspace({
                 value: String(reportData.summary.releasedCount),
                 color: "#34B1AA",
                 glow: "shadow-[0_4px_20px_-2px_rgba(52,177,170,0.15)]",
-              },
-              {
-                label: "Delivery Flags",
-                value: String(reportData.summary.deliveryFailedCount),
-                color: "#F29F67",
-                glow: "shadow-[0_4px_20px_-2px_rgba(242,159,103,0.15)]",
               },
             ].map((item) => (
               <div
@@ -341,12 +329,10 @@ export default function StaffRecordsArchiveWorkspace({
                       </div>
                     </td>
                     <td className="px-6 py-5 align-top sm:px-8">
-                      <Link
-                        href={`/staff/gmc-requests/${request.id}`}
-                        className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
-                      >
-                        Open Record
-                      </Link>
+                      <StaffRequestDetailModal
+                        requestId={request.id}
+                        requestReferenceNumber={request.requestReferenceNumber}
+                      />
                       {request.status === "RELEASED" && request.generatedPdfUrl ? (
                         <a
                           href={getPrivateStorageDownloadUrl(
@@ -521,7 +507,7 @@ export default function StaffRecordsArchiveWorkspace({
           </div>
         </form>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
           {[
             {
               label: "Certificates",
@@ -530,14 +516,6 @@ export default function StaffRecordsArchiveWorkspace({
             {
               label: "Released",
               value: reportData.summary.releasedCount,
-            },
-            {
-              label: "Generated",
-              value: reportData.summary.generatedCount,
-            },
-            {
-              label: "Delivery Failed",
-              value: reportData.summary.deliveryFailedCount,
             },
           ].map((item, index) => (
             <div
@@ -564,14 +542,12 @@ export default function StaffRecordsArchiveWorkspace({
                 </th>
                 <th className="px-6 py-4 sm:px-8">Total</th>
                 <th className="px-6 py-4 sm:px-8">Released</th>
-                <th className="px-6 py-4 sm:px-8">Generated</th>
-                <th className="px-6 py-4 sm:px-8">Delivery Failed</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {reportData.rows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">
+                  <td colSpan={3} className="px-6 py-12 text-center text-sm text-slate-500">
                     No certificate issuances match the selected report filters.
                   </td>
                 </tr>
@@ -586,12 +562,6 @@ export default function StaffRecordsArchiveWorkspace({
                     </td>
                     <td className="px-6 py-5 align-top text-slate-700 sm:px-8">
                       {row.releasedCount}
-                    </td>
-                    <td className="px-6 py-5 align-top text-slate-700 sm:px-8">
-                      {row.generatedCount}
-                    </td>
-                    <td className="px-6 py-5 align-top text-slate-700 sm:px-8">
-                      {row.deliveryFailedCount}
                     </td>
                   </tr>
                 ))

@@ -38,18 +38,10 @@ export interface UpdateGmcRequestStatusInput {
 
 function auditActionForStatus(status: GmcRequestStatus): string {
   switch (status) {
-    case "APPROVED":
-      return "REQUEST_APPROVED";
-    case "GENERATED":
-      return "REQUEST_GENERATED";
     case "REJECTED":
       return "REQUEST_REJECTED";
-    case "RETURNED":
-      return "REQUEST_RETURNED";
     case "RELEASED":
       return "REQUEST_RELEASED";
-    case "DELIVERY_FAILED":
-      return "REQUEST_DELIVERY_FAILED";
     case "PENDING":
     default:
       return "REQUEST_RESTORED_TO_PENDING";

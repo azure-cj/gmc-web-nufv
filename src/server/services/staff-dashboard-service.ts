@@ -6,12 +6,8 @@ const DASHBOARD_PAGE_SIZE = 5;
 export const STAFF_REQUEST_STATUSES = [
   "all",
   "PENDING",
-  "APPROVED",
-  "GENERATED",
-  "RETURNED",
   "REJECTED",
   "RELEASED",
-  "DELIVERY_FAILED",
 ] as const;
 
 export type StaffRequestStatusFilter = (typeof STAFF_REQUEST_STATUSES)[number];
@@ -88,12 +84,8 @@ function buildSearchWhere(search: string): Prisma.GmcRequestWhereInput {
 function mapStatusFilter(status: StaffRequestStatusFilter): GmcRequestStatus | null {
   switch (status) {
     case "PENDING":
-    case "APPROVED":
-    case "GENERATED":
-    case "RETURNED":
     case "REJECTED":
     case "RELEASED":
-    case "DELIVERY_FAILED":
       return status;
     case "all":
     default:

@@ -79,12 +79,8 @@ function buildSearchWhere(search: string): Prisma.GmcRequestWhereInput {
 function mapStatusFilter(status: StaffRequestStatusFilter): GmcRequestStatus | null {
   switch (status) {
     case "PENDING":
-    case "APPROVED":
-    case "GENERATED":
-    case "RETURNED":
     case "REJECTED":
     case "RELEASED":
-    case "DELIVERY_FAILED":
       return status;
     case "all":
     default:

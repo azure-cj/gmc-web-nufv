@@ -34,7 +34,6 @@ export default async function StaffIssuedCertificatesPage({
       data={data}
       filters={filters}
       basePath="/staff/issued-certificates"
-      detailBasePath="/staff/gmc-requests"
     />
   );
 }

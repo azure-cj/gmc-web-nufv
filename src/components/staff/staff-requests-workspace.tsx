@@ -24,7 +24,6 @@ interface StaffRequestsWorkspaceProps {
   title?: string;
   description?: string;
   basePath: string;
-  detailBasePath: string;
   data: StaffDashboardData;
   filters: StaffDashboardFilters;
   overview?: StaffDashboardOverviewData;
@@ -45,13 +44,7 @@ function statusBadgeClass(status: string): string {
   switch (status) {
     case "PENDING":
       return "border-[#E0B50F]/40 bg-[#E0B50F]/15 text-[#8F7306]";
-    case "APPROVED":
-      return "border-[#34B1AA]/40 bg-[#34B1AA]/15 text-[#1E746F]";
-    case "GENERATED":
-      return "border-[#3B8FF3]/40 bg-[#3B8FF3]/15 text-[#1E589B]";
     case "REJECTED":
-    case "RETURNED":
-    case "DELIVERY_FAILED":
       return "border-[#E05252]/40 bg-[#E05252]/15 text-[#9B2C2C]";
     case "RELEASED":
       return "border-[#34B1AA]/40 bg-[#34B1AA]/15 text-[#1E746F]";
@@ -60,35 +53,10 @@ function statusBadgeClass(status: string): string {
   }
 }
 
-function buildRequestViewHref(
-  detailBasePath: string,
-  requestId: string,
-  returnTo: string,
-  mode?: "view-note" | "view-reason" | "view",
-): string {
-  const query = new URLSearchParams();
-  if (mode) {
-    query.set("mode", mode);
-  }
-  query.set("returnTo", returnTo);
-  return `${detailBasePath}/${requestId}?${query.toString()}`;
-}
-
-function buildCertificateReviewHref(
-  detailBasePath: string,
-  requestId: string,
-  returnTo: string,
-): string {
-  const query = new URLSearchParams();
-  query.set("returnTo", returnTo);
-  return `${detailBasePath}/${requestId}/review?${query.toString()}`;
-}
-
 export default function StaffRequestsWorkspace({
   title,
   description,
   basePath,
-  detailBasePath,
   data,
   filters,
   overview,
@@ -96,7 +64,6 @@ export default function StaffRequestsWorkspace({
 }: StaffRequestsWorkspaceProps) {
   const showingStart = data.pagination.totalResults === 0 ? 0 : (data.pagination.page - 1) * data.pagination.pageSize + 1;
   const showingEnd = data.pagination.totalResults === 0 ? 0 : Math.min(data.pagination.page * data.pagination.pageSize, data.pagination.totalResults);
-  const currentReturnTo = buildStaffDashboardUrl(basePath, filters);
   const previousPageHref = data.pagination.hasPreviousPage
     ? buildStaffDashboardUrl(basePath, filters, { page: data.pagination.page - 1 })
     : null;
@@ -283,12 +250,6 @@ export default function StaffRequestsWorkspace({
                 </tr>
               ) : (
                 data.requests.map((request) => {
-                  const reviewHref = buildCertificateReviewHref(
-                    detailBasePath,
-                    request.id,
-                    currentReturnTo,
-                  );
-
                   return (
                     <tr key={request.id} className="gmc-table-row">
                       <td className="px-6 py-5 align-top sm:px-8">
@@ -332,45 +293,12 @@ export default function StaffRequestsWorkspace({
                               requestId={request.id}
                               requestReferenceNumber={request.requestReferenceNumber}
                             />
-                          ) : request.status === "GENERATED" ||
-                            request.status === "DELIVERY_FAILED" ? (
-                            <Link
-                              href={reviewHref}
-                              className="inline-flex rounded-full border border-[#3B8FF3]/40 bg-[#3B8FF3]/15 px-3 py-1.5 text-xs font-semibold text-[#1E589B] transition hover:bg-[#3B8FF3]/25"
-                            >
-                              {request.status === "DELIVERY_FAILED"
-                                ? "Retry PDF Generation"
-                                : "Review Certificate"}
-                            </Link>
-                          ) : request.status === "RETURNED" ? (
-                            <Link
-                              href={buildRequestViewHref(
-                                detailBasePath,
-                                request.id,
-                                currentReturnTo,
-                                "view-note",
-                              )}
-                              className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
-                            >
-                              View Note
-                            </Link>
-                          ) : request.status === "REJECTED" ? (
-                            <Link
-                              href={buildRequestViewHref(
-                                detailBasePath,
-                                request.id,
-                                currentReturnTo,
-                                "view-reason",
-                              )}
-                              className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
-                            >
-                              View Reason
-                            </Link>
-                          ) : null}
-                          <StaffRequestDetailModal
-                            requestId={request.id}
-                            requestReferenceNumber={request.requestReferenceNumber}
-                          />
+                          ) : (
+                            <StaffRequestDetailModal
+                              requestId={request.id}
+                              requestReferenceNumber={request.requestReferenceNumber}
+                            />
+                          )}
                           {request.status === "RELEASED" && request.certificate?.generatedPdfUrl ? (
                             <a
                               href={getPrivateStorageDownloadUrl(

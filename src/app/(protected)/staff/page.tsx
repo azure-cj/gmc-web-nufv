@@ -33,7 +33,6 @@ export default async function StaffDashboardPage({
   return (
     <StaffRequestsWorkspace
       basePath="/staff"
-      detailBasePath="/staff/gmc-requests"
       data={data}
       filters={filters}
       overview={overview}

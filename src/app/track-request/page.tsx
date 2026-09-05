@@ -29,14 +29,6 @@ function lookupStatusHint(status: string): string {
   switch (status) {
     case "PENDING":
       return "Your request is still under review by the Discipline Office.";
-    case "APPROVED":
-      return "Your request has been verified and is moving to certificate generation.";
-    case "GENERATED":
-      return "Your certificate has been generated and is waiting for final release.";
-    case "DELIVERY_FAILED":
-      return "The certificate is ready, but delivery needs another staff retry.";
-    case "RETURNED":
-      return "Your request was returned for correction. Please contact the Discipline Office.";
     case "REJECTED":
       return "Your request was rejected. Please contact the Discipline Office if you need clarification.";
     case "RELEASED":

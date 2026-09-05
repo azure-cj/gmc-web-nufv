@@ -167,7 +167,7 @@ async function main() {
     actorId: null,
   });
 
-  const approvedRequest = await updateGmcRequestStatus(prisma, {
+  await updateGmcRequestStatus(prisma, {
     gmcRequestId: request2.id,
     status: GmcRequestStatus.APPROVED,
     reviewedById: disciplineStaff.id,
@@ -178,7 +178,7 @@ async function main() {
   });
 
   await issueCertificateForRequest(prisma, {
-    gmcRequestId: approvedRequest.id,
+    gmcRequestId: request2.id,
     authorizedSignatory: "SHEILA MARIE R. RELLES, MA",
     officeDesignation: "SDO Officer-in-Charge",
     dateOfIssuance: june13,
@@ -188,20 +188,10 @@ async function main() {
 
   await updateGmcRequestStatus(prisma, {
     gmcRequestId: request2.id,
-    status: GmcRequestStatus.GENERATED,
+    status: GmcRequestStatus.RELEASED,
     reviewedById: disciplineStaff.id,
-    reviewNotes: "Certificate preview prepared for Phase 4 review.",
-    actorId: disciplineStaff.id,
-  });
-
-  await updateGmcRequestStatus(prisma, {
-    gmcRequestId: request3.id,
-    status: GmcRequestStatus.RETURNED,
-    reviewedById: disciplineStaff.id,
-    paymentVerificationStatus: PaymentVerificationStatus.UNVERIFIED,
-    officialReceiptNumber: "INV01-000044219",
-    returnReason: "Payment proof is missing the transaction reference number.",
-    reviewNotes: "Return for resubmission with a clearer payment proof.",
+    dateReleased: new Date("2026-06-15T09:15:00+08:00"),
+    reviewNotes: "Released to the student after certificate issuance.",
     actorId: disciplineStaff.id,
   });
 
@@ -243,6 +233,14 @@ async function main() {
     reviewNotes: "Released to the student after certificate issuance.",
     actorId: disciplineStaff.id,
   });
+
+  console.log("Seeded GMC requests:");
+  console.log(
+    `  ${request2.requestReferenceNumber} -> RELEASED`,
+    `  ${request3.requestReferenceNumber} -> PENDING`,
+    `  ${request4.requestReferenceNumber} -> REJECTED`,
+    `  ${request5.requestReferenceNumber} -> RELEASED`,
+  );
 }
 
 main()

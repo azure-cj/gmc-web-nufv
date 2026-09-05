@@ -386,12 +386,8 @@ async function buildStatusBreakdown(
   const total = grouped.reduce((sum, item) => sum + item._count._all, 0);
   const order: GmcRequestStatus[] = [
     "PENDING",
-    "APPROVED",
-    "GENERATED",
-    "RETURNED",
     "REJECTED",
     "RELEASED",
-    "DELIVERY_FAILED",
   ];
 
   return order.map((status) => {

@@ -45,14 +45,9 @@ function statusBadgeClass(status: string): string {
   switch (status) {
     case "PENDING":
       return "border-[#E0B50F]/40 bg-[#E0B50F]/15 text-[#8F7306]";
-    case "APPROVED":
     case "RELEASED":
       return "border-[#34B1AA]/40 bg-[#34B1AA]/15 text-[#1E746F]";
-    case "GENERATED":
-      return "border-[#3B8FF3]/40 bg-[#3B8FF3]/15 text-[#1E589B]";
     case "REJECTED":
-    case "RETURNED":
-    case "DELIVERY_FAILED":
       return "border-[#E05252]/40 bg-[#E05252]/15 text-[#9B2C2C]";
     default:
       return "border-[#8A94A6]/40 bg-[#8A94A6]/15 text-[#4A5260]";

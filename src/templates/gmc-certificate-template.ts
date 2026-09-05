@@ -19,7 +19,17 @@ const SIGNATURE_IMAGE_BASE_DIR = path.join(
 );
 
 const SIGNATURE_IMAGE_LOOKUP: Record<string, string> = {
-  "SHEILA MARIE R. RELLES, MA": path.join(SIGNATURE_IMAGE_BASE_DIR, "smr-esig.jpg"),
+  "SHEILA MARIE R. RELLES, MA": path.join(
+    SIGNATURE_IMAGE_BASE_DIR,
+    "smr-esig.png",
+  ),
+};
+
+const SIGNATURE_IMAGE_FALLBACK_LOOKUP: Record<string, string> = {
+  "SHEILA MARIE R. RELLES, MA": path.join(
+    SIGNATURE_IMAGE_BASE_DIR,
+    "smr-esig.jpg",
+  ),
 };
 
 const signatureImageCache = new Map<string, string | null>();
@@ -40,24 +50,26 @@ async function loadSignatureImageBase64(
 
   const explicitPath = process.env.GMC_CERTIFICATE_SIGNATURE_IMAGE_PATH;
   const lookupPath = SIGNATURE_IMAGE_LOOKUP[cacheKey];
-  const filePath = explicitPath || lookupPath || null;
+  const fallbackPath = SIGNATURE_IMAGE_FALLBACK_LOOKUP[cacheKey];
+  const candidates = [explicitPath, lookupPath, fallbackPath].filter(
+    (filePath): filePath is string => Boolean(filePath),
+  );
 
-  if (!filePath) {
-    signatureImageCache.set(cacheKey, null);
-    return null;
+  for (const filePath of candidates) {
+    try {
+      const buffer = await fs.readFile(filePath);
+      const ext = path.extname(filePath).toLowerCase();
+      const mime = ext === ".png" ? "image/png" : "image/jpeg";
+      const dataUri = `data:${mime};base64,${buffer.toString("base64")}`;
+      signatureImageCache.set(cacheKey, dataUri);
+      return dataUri;
+    } catch {
+      // fall through to the next candidate
+    }
   }
 
-  try {
-    const buffer = await fs.readFile(filePath);
-    const ext = path.extname(filePath).toLowerCase();
-    const mime = ext === ".png" ? "image/png" : "image/jpeg";
-    const dataUri = `data:${mime};base64,${buffer.toString("base64")}`;
-    signatureImageCache.set(cacheKey, dataUri);
-    return dataUri;
-  } catch {
-    signatureImageCache.set(cacheKey, null);
-    return null;
-  }
+  signatureImageCache.set(cacheKey, null);
+  return null;
 }
 
 export interface GoodMoralCertificateTemplateInput {
@@ -230,7 +242,7 @@ export async function buildGoodMoralCertificateHtml(
         display: block;
         max-width: 144px;
         height: auto;
-        margin: 0 0 -16px;
+        margin: 0 0 6px;
       }
 
       .footer-block {

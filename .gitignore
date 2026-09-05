@@ -18,3 +18,5 @@ public/uploads/*
 prisma/dev.db
 tmp/
 .vercel-chromium-bin/
+output/pdf/
+output/*-backup-*.json

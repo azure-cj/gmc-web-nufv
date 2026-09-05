@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   formatBusinessDateTime,
@@ -17,14 +17,7 @@ interface ProcessDraft {
   request: {
     id: string;
     requestReferenceNumber: string;
-    status:
-      | "PENDING"
-      | "APPROVED"
-      | "GENERATED"
-      | "REJECTED"
-      | "RETURNED"
-      | "RELEASED"
-      | "DELIVERY_FAILED";
+    status: "PENDING" | "REJECTED" | "RELEASED";
     studentEmail: string;
     purposeOfRequest:
       | "TRANSFER_OUT"
@@ -52,6 +45,11 @@ interface ProcessDraft {
     exists: boolean;
     requestReferenceNumber: string | null;
   };
+  certificatePreview: {
+    previewHtml: string;
+    certificateNumber: string;
+    dateOfIssuance: string;
+  } | null;
   certificate: {
     id: string;
     certificateNumber: string;
@@ -97,7 +95,7 @@ const REJECT_CATEGORY_OPTIONS = [
 
 const STEP_LABELS: Record<WizardStep, string> = {
   1: "Validate Request",
-  2: "Review Certificate",
+  2: "Review Preview",
   3: "Release",
 };
 
@@ -191,6 +189,8 @@ export default function StaffRequestProcessModal({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [proofLightboxOpen, setProofLightboxOpen] = useState(false);
   const [proofImageStatus, setProofImageStatus] = useState<"loading" | "loaded" | "error">("loading");
+  const [hasEngaged, setHasEngaged] = useState(false);
+  const hasCompletedRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -220,6 +220,8 @@ export default function StaffRequestProcessModal({
     setFieldErrors({});
     setProofLightboxOpen(false);
     setProofImageStatus("loading");
+    setHasEngaged(false);
+    hasCompletedRef.current = false;
 
     try {
       const response = await fetch(
@@ -258,15 +260,30 @@ export default function StaffRequestProcessModal({
   };
 
   const closeModal = () => {
+    if (
+      draft &&
+      draft.request.status === "PENDING" &&
+      hasEngaged &&
+      step < 3 &&
+      !hasCompletedRef.current
+    ) {
+      void fetch(`/api/staff/gmc-requests/${requestId}/process`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "WIZARD_DISCARDED" }),
+      }).catch(() => undefined);
+    }
+
     setIsOpen(false);
     setDraft(null);
     setFormError(null);
     setFieldErrors({});
+    setHasEngaged(false);
   };
 
   const submitProcess = useCallback(
     async (
-      action: "CONFIRM" | "REJECT" | "RELEASE",
+      action: "CONFIRM" | "REJECT" | "RELEASE" | "WIZARD_DISCARDED",
       payload: Record<string, unknown>,
     ): Promise<ProcessResponse | null> => {
       setIsSubmitting(true);
@@ -338,6 +355,7 @@ export default function StaffRequestProcessModal({
       return;
     }
 
+    setHasEngaged(true);
     setDraft(body.draft);
     setStep(2);
   };
@@ -352,9 +370,21 @@ export default function StaffRequestProcessModal({
   };
 
   const handleRelease = async () => {
-    const body = await submitProcess("RELEASE", { confirmed: true });
+    const body = await submitProcess("RELEASE", {
+      confirmed: true,
+      reviewNotes: "",
+      studentFullName: form.studentFullName.trim(),
+      studentIdNumber: form.studentIdNumber.trim(),
+      courseProgram: form.courseProgram.trim(),
+      academicYear: form.academicYear.trim(),
+      term: form.term.trim(),
+      purposeOfCertificate: form.purposeOfCertificate,
+      officialReceiptNumber: form.officialReceiptNumber.trim(),
+      hasViolationRecord: violationChoice === "HAS_VIOLATION",
+    });
 
     if (body?.draft) {
+      hasCompletedRef.current = true;
       setDraft(body.draft);
       setStep(3);
       setIsShowingReleaseConfirm(false);
@@ -390,11 +420,13 @@ export default function StaffRequestProcessModal({
       return;
     }
 
+    hasCompletedRef.current = true;
     closeModal();
     router.refresh();
   };
 
   const certificate = draft?.certificate;
+  const certificatePreview = draft?.certificatePreview;
   const certificateDownloadName = certificate
     ? `${certificate.studentFullName}_${certificate.certificateNumber}.pdf`
     : "";
@@ -988,11 +1020,16 @@ export default function StaffRequestProcessModal({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm text-slate-500">
-              Certificate No. {certificate?.certificateNumber}
+              Certificate No.{" "}
+              {certificate?.certificateNumber ??
+                certificatePreview?.certificateNumber ??
+                "Auto-assigned on release"}
             </p>
             <p className="mt-1 text-base text-slate-600">
               Issued on{" "}
-              {certificate ? formatBusinessDateTime(certificate.dateOfIssuance) : ""}
+              {certificate
+                ? formatBusinessDateTime(certificate.dateOfIssuance)
+                : "the date of release"}
             </p>
           </div>
           <span className="inline-flex rounded-full border border-[#3B8FF3]/40 bg-[#3B8FF3]/15 px-4 py-1.5 text-sm font-semibold text-[#1E589B]">
@@ -1008,16 +1045,18 @@ export default function StaffRequestProcessModal({
 
         <div className="mt-5 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-100">
           <iframe
-            title={`Certificate preview ${certificate?.certificateNumber ?? ""}`}
-            srcDoc={certificate?.previewHtml ?? ""}
+            title={`Certificate preview ${certificate?.certificateNumber ?? "pending release"}`}
+            srcDoc={certificate?.previewHtml ?? certificatePreview?.previewHtml ?? ""}
             className="min-h-[44rem] w-full bg-white"
           />
         </div>
 
         <div className="border-t border-slate-200 py-6">
           <p className="text-sm leading-6 text-slate-600">
-            Review the generated certificate above. Use Edit if any information
-            needs to change, then Release to move to the final step.
+            Review the certificate above with the confirmed details. The
+            certificate number is assigned and the PDF is generated when you
+            Release. Use Edit if any information needs to change, then Release
+            to finalize the request.
           </p>
         </div>
 

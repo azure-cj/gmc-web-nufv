@@ -19,11 +19,7 @@ import {
 import { renderHtmlToPdfBuffer } from "./html-to-pdf-service";
 
 const RECORDS_ARCHIVE_PAGE_SIZE = 10;
-const CERTIFICATE_REPORT_STATUSES: GmcRequestStatus[] = [
-  "GENERATED",
-  "RELEASED",
-  "DELIVERY_FAILED",
-];
+const CERTIFICATE_REPORT_STATUSES: GmcRequestStatus[] = ["RELEASED"];
 
 type DatabaseClient = PrismaClient | Prisma.TransactionClient;
 
@@ -97,15 +93,11 @@ export interface RecordsArchiveReportRow {
   label: string;
   totalCertificates: number;
   releasedCount: number;
-  generatedCount: number;
-  deliveryFailedCount: number;
 }
 
 export interface RecordsArchiveReportSummary {
   totalCertificates: number;
   releasedCount: number;
-  generatedCount: number;
-  deliveryFailedCount: number;
   issuanceFromLabel: string;
   issuanceToLabel: string;
   breakdownLabel: string;
@@ -160,12 +152,8 @@ function mapArchiveStatusFilter(
 ): GmcRequestStatus | null {
   switch (status) {
     case "PENDING":
-    case "APPROVED":
-    case "GENERATED":
-    case "RETURNED":
     case "REJECTED":
     case "RELEASED":
-    case "DELIVERY_FAILED":
       return status;
     case "all":
     default:
@@ -177,10 +165,8 @@ function mapReportStatusFilter(
   status: RecordsArchiveReportStatusFilter,
 ): GmcRequestStatus[] {
   switch (status) {
-    case "GENERATED":
     case "RELEASED":
-    case "DELIVERY_FAILED":
-      return [status];
+      return ["RELEASED"];
     case "all":
     default:
       return CERTIFICATE_REPORT_STATUSES;
@@ -316,8 +302,6 @@ function buildReportRow(
     label,
     totalCertificates: initial?.totalCertificates ?? 0,
     releasedCount: initial?.releasedCount ?? 0,
-    generatedCount: initial?.generatedCount ?? 0,
-    deliveryFailedCount: initial?.deliveryFailedCount ?? 0,
   };
 }
 
@@ -348,11 +332,6 @@ function buildReportSummary(
   );
 
   const releasedCount = rows.reduce((sum, row) => sum + row.releasedCount, 0);
-  const generatedCount = rows.reduce((sum, row) => sum + row.generatedCount, 0);
-  const deliveryFailedCount = rows.reduce(
-    (sum, row) => sum + row.deliveryFailedCount,
-    0,
-  );
 
   const issuanceFromLabel = filters.from
     ? formatBusinessDate(filters.from)
@@ -362,8 +341,6 @@ function buildReportSummary(
   return {
     totalCertificates,
     releasedCount,
-    generatedCount,
-    deliveryFailedCount,
     issuanceFromLabel,
     issuanceToLabel,
     breakdownLabel:
@@ -476,18 +453,8 @@ export function buildRecordsArchiveReportData(
 
     current.totalCertificates += 1;
 
-    switch (record.status) {
-      case "RELEASED":
-        current.releasedCount += 1;
-        break;
-      case "GENERATED":
-        current.generatedCount += 1;
-        break;
-      case "DELIVERY_FAILED":
-        current.deliveryFailedCount += 1;
-        break;
-      default:
-        break;
+    if (record.status === "RELEASED") {
+      current.releasedCount += 1;
     }
 
     grouped.set(key, current);
@@ -544,17 +511,13 @@ export function buildRecordsArchiveReportCsv(
     `Program Filter,${csvEscape(data.summary.programLabel)}`,
     `Total Certificates,${csvEscape(data.summary.totalCertificates)}`,
     `Released Count,${csvEscape(data.summary.releasedCount)}`,
-    `Generated Count,${csvEscape(data.summary.generatedCount)}`,
-    `Delivery Failed Count,${csvEscape(data.summary.deliveryFailedCount)}`,
     "",
-    ["Group", "Total Certificates", "Released", "Generated", "Delivery Failed"].join(","),
+    ["Group", "Total Certificates", "Released"].join(","),
     ...data.rows.map((row) =>
       [
         csvEscape(row.label),
         csvEscape(row.totalCertificates),
         csvEscape(row.releasedCount),
-        csvEscape(row.generatedCount),
-        csvEscape(row.deliveryFailedCount),
       ].join(","),
     ),
   ];
@@ -573,14 +536,6 @@ export function buildRecordsArchiveReportHtml(
     {
       label: "Released",
       value: String(data.summary.releasedCount),
-    },
-    {
-      label: "Generated",
-      value: String(data.summary.generatedCount),
-    },
-    {
-      label: "Delivery Failed",
-      value: String(data.summary.deliveryFailedCount),
     },
   ]
     .map(
@@ -601,15 +556,13 @@ export function buildRecordsArchiveReportHtml(
               <td style="padding:12px 14px;border-top:1px solid #e2e8f0;">${escapeHtml(row.label)}</td>
               <td style="padding:12px 14px;border-top:1px solid #e2e8f0;text-align:right;">${row.totalCertificates}</td>
               <td style="padding:12px 14px;border-top:1px solid #e2e8f0;text-align:right;">${row.releasedCount}</td>
-              <td style="padding:12px 14px;border-top:1px solid #e2e8f0;text-align:right;">${row.generatedCount}</td>
-              <td style="padding:12px 14px;border-top:1px solid #e2e8f0;text-align:right;">${row.deliveryFailedCount}</td>
             </tr>
           `,
         )
         .join("")
     : `
         <tr>
-          <td colspan="5" style="padding:24px 14px;text-align:center;color:#64748b;border-top:1px solid #e2e8f0;">
+          <td colspan="3" style="padding:24px 14px;text-align:center;color:#64748b;border-top:1px solid #e2e8f0;">
             No certificate issuances match the selected filters.
           </td>
         </tr>
@@ -659,7 +612,7 @@ export function buildRecordsArchiveReportHtml(
       }
       .cards {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
         margin: 18px 0 20px;
       }
@@ -708,8 +661,6 @@ export function buildRecordsArchiveReportHtml(
             <th>${escapeHtml(data.summary.breakdownLabel)}</th>
             <th>Total</th>
             <th>Released</th>
-            <th>Generated</th>
-            <th>Delivery Failed</th>
           </tr>
         </thead>
         <tbody>

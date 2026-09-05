@@ -3,19 +3,13 @@ type SearchParamValue = string | string[] | undefined;
 export const RECORDS_ARCHIVE_STATUSES = [
   "all",
   "PENDING",
-  "APPROVED",
-  "GENERATED",
-  "RETURNED",
   "REJECTED",
   "RELEASED",
-  "DELIVERY_FAILED",
 ] as const;
 
 export const RECORDS_ARCHIVE_REPORT_STATUSES = [
   "all",
-  "GENERATED",
   "RELEASED",
-  "DELIVERY_FAILED",
 ] as const;
 
 export const RECORDS_ARCHIVE_BREAKDOWNS = ["STATUS", "PROGRAM"] as const;

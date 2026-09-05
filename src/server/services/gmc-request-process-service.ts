@@ -5,6 +5,8 @@ import {
   type PurposeOfRequest,
 } from "@prisma/client";
 import { STUDENT_ID_PATTERN } from "@/lib/gmc-request";
+import { getStorageService } from "@/lib/storage";
+import { renderCertificateHtmlToPdfBuffer } from "./certificate-pdf-service";
 import {
   buildCertificateReviewEditableValues,
   buildCertificatePreviewHtmlFromEditableValues,
@@ -28,12 +30,7 @@ const PURPOSE_LABEL_TO_ENUM: Record<string, PurposeOfRequest> = {
   Other: "OTHER",
 };
 
-const PROCESSABLE_STATUSES: ReadonlySet<GmcRequestStatus> = new Set([
-  "PENDING",
-  "APPROVED",
-  "GENERATED",
-  "DELIVERY_FAILED",
-]);
+const RELEASE_TRANSACTION_TIMEOUT_MS = 55_000;
 
 export interface GmcRequestProcessDraft {
   request: {
@@ -61,6 +58,11 @@ export interface GmcRequestProcessDraft {
     exists: boolean;
     requestReferenceNumber: string | null;
   };
+  certificatePreview: {
+    previewHtml: string;
+    certificateNumber: string;
+    dateOfIssuance: string;
+  } | null;
   certificate: {
     id: string;
     certificateNumber: string;
@@ -132,6 +134,7 @@ export async function buildGmcRequestProcessDraft(
       purposeOfCertificate: editable.purposeOfCertificate,
     },
     invoiceNumberDuplicate: invoiceNumberDuplicate,
+    certificatePreview: null,
     certificate: certificate
       ? {
           id: certificate.id,
@@ -169,65 +172,39 @@ export interface GmcRequestProcessConfirmInput {
   hasViolationRecord: boolean;
 }
 
-export async function findDuplicateInvoiceRequest(
-  db: PrismaClient | Prisma.TransactionClient,
-  requestId: string,
-  officialReceiptNumber: string | null,
-): Promise<{ exists: boolean; requestReferenceNumber: string | null }> {
-  if (!officialReceiptNumber || !officialReceiptNumber.trim()) {
-    return { exists: false, requestReferenceNumber: null };
-  }
+interface ProcessedEditableValues {
+  studentFullName: string;
+  studentIdNumber: string;
+  courseProgram: string;
+  academicYear: string;
+  purposeOfCertificate: string;
+  authorizedSignatory: string;
+  officeDesignation: string;
+}
 
-  const duplicate = await db.gmcRequest.findFirst({
-    where: {
-      officialReceiptNumber: officialReceiptNumber.trim(),
-      id: { not: requestId },
-    },
-    select: { requestReferenceNumber: true },
-  });
-
-  return {
-    exists: Boolean(duplicate),
-    requestReferenceNumber: duplicate?.requestReferenceNumber ?? null,
+interface ProcessValidationResult {
+  editableValues: ProcessedEditableValues;
+  purposeOfRequest: PurposeOfRequest;
+  nameParts: {
+    firstName: string;
+    middleInitial: string | null;
+    lastName: string;
+  };
+  term: string;
+  officialReceiptNumber: string;
+  hasViolationRecord: boolean;
+  previewContext: {
+    studentTitlePrefix: string | null;
+    term: string;
+    purposeOfRequest: PurposeOfRequest;
+    officialReceiptNumber: string;
+    hasViolationRecord: boolean;
   };
 }
 
-function splitFullName(fullName: string): {
-  firstName: string;
-  middleInitial: string | null;
-  lastName: string;
-} {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
-
-  if (parts.length === 0) {
-    return { firstName: "", middleInitial: null, lastName: "" };
-  }
-
-  if (parts.length === 1) {
-    return { firstName: parts[0], middleInitial: null, lastName: "" };
-  }
-
-  const lastName = parts[parts.length - 1];
-  const rest = parts.slice(0, -1);
-  const trailingPart = rest[rest.length - 1];
-
-  if (rest.length > 1 && /^[A-Z]\.?$/i.test(trailingPart)) {
-    return {
-      firstName: rest.slice(0, -1).join(" "),
-      middleInitial: trailingPart.replace(".", "").toUpperCase(),
-      lastName,
-    };
-  }
-
-  return { firstName: rest.join(" "), middleInitial: null, lastName };
-}
-
-export async function confirmGmcRequestProcess(
-  db: PrismaClient,
+function validateProcessInput(
   input: GmcRequestProcessConfirmInput,
-): Promise<GmcRequestProcessDraft> {
-  await warmSignatureImageCache(DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY);
-
+): ProcessValidationResult {
   const editableValues = {
     studentFullName: input.studentFullName.trim(),
     studentIdNumber: input.studentIdNumber.trim(),
@@ -299,139 +276,313 @@ export async function confirmGmcRequestProcess(
   const purposeOfRequest =
     PURPOSE_LABEL_TO_ENUM[editableValues.purposeOfCertificate];
 
-  const nameParts = splitFullName(editableValues.studentFullName);
+  const term = input.term.trim();
+  const officialReceiptNumber = input.officialReceiptNumber.trim();
+  const hasViolationRecord = Boolean(input.hasViolationRecord);
+  const previewContext = {
+    studentTitlePrefix: null,
+    term,
+    purposeOfRequest,
+    officialReceiptNumber,
+    hasViolationRecord,
+  };
 
-  const txResult = await db.$transaction(async (tx) => {
-    const currentRequest = await loadGeneratedCertificateReviewRequest(
-      tx,
-      input.requestId,
-    );
-
-    if (!currentRequest) {
-      throw new Error("GMC request not found.");
-    }
-
-    if (!PROCESSABLE_STATUSES.has(currentRequest.status)) {
-      throw new Error("This request can no longer be processed.");
-    }
-
-    let certificate = currentRequest.certificate;
-
-    if (!certificate) {
-      await updateGmcRequestStatusInTransaction(tx, {
-        gmcRequestId: currentRequest.id,
-        status: "APPROVED",
-        reviewedById: input.staffUserId,
-        reviewNotes: "Validated and approved through the guided review flow.",
-        actorId: input.staffUserId,
-        auditAction: "REQUEST_APPROVED",
-        auditNotes: "Payment recorded and request approved during guided review.",
-      });
-
-      const approvedRequest = await loadGeneratedCertificateReviewRequest(
-        tx,
-        currentRequest.id,
-      );
-
-      if (!approvedRequest) {
-        throw new Error("GMC request not found after approval.");
-      }
-
-      certificate = await issueCertificateForLoadedRequest(
-        tx,
-        approvedRequest,
-        {
-          gmcRequestId: currentRequest.id,
-          authorizedSignatory: DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY,
-          officeDesignation: DEFAULT_CERTIFICATE_OFFICE_DESIGNATION,
-          actorId: input.staffUserId,
-        },
-      );
-    }
-
-    await tx.certificate.update({
-      where: { id: certificate.id },
-      data: editableValues,
-    });
-
-    await tx.gmcRequest.update({
-      where: { id: currentRequest.id },
-      data: {
-        studentFirstName: nameParts.firstName,
-        studentMiddleInitial: nameParts.middleInitial,
-        studentLastName: nameParts.lastName,
-        studentCourseProgram: editableValues.courseProgram,
-        studentAcademicYear: editableValues.academicYear,
-        term: input.term.trim(),
-        purposeOfRequest,
-        officialReceiptNumber: input.officialReceiptNumber.trim(),
-        hasViolationRecord: Boolean(input.hasViolationRecord),
-        reviewNotes: "Information validated through the guided review flow.",
-      },
-    });
-
-    await updateGmcRequestStatusInTransaction(tx, {
-      gmcRequestId: currentRequest.id,
-      status: "GENERATED",
-      reviewedById: input.staffUserId,
-      reviewNotes: "Information validated through the guided review flow.",
-      actorId: input.staffUserId,
-      auditAction: "REQUEST_GENERATED",
-      auditNotes: "Certificate preview prepared in the guided review flow.",
-    });
-
-    return {
-      requestId: currentRequest.id,
-      certificateId: certificate.id,
-      certificateNumber: certificate.certificateNumber,
-      dateOfIssuance: certificate.dateOfIssuance,
-      studentTitlePrefix: currentRequest.studentTitlePrefix,
-    };
-  }, { timeout: 10_000 });
-
-  const previewHtml = await buildCertificatePreviewHtmlFromEditableValues(
-    txResult.certificateNumber,
+  return {
     editableValues,
-    txResult.dateOfIssuance,
-    {
-      studentTitlePrefix: txResult.studentTitlePrefix ?? null,
-      term: input.term.trim(),
-      purposeOfRequest,
-      officialReceiptNumber: input.officialReceiptNumber.trim(),
-      hasViolationRecord: Boolean(input.hasViolationRecord),
-    },
-  );
+    purposeOfRequest,
+    nameParts: splitFullName(editableValues.studentFullName),
+    term,
+    officialReceiptNumber,
+    hasViolationRecord,
+    previewContext,
+  };
+}
 
-  await db.certificate.update({
-    where: { id: txResult.certificateId },
-    data: { previewHtml },
-  });
-
-  await db.auditLogEntry.create({
-    data: {
-      gmcRequestId: txResult.requestId,
-      actorId: input.staffUserId,
-      action: "CERTIFICATE_EDITED_BEFORE_APPROVAL",
-      notes: "Certificate details updated during guided review.",
-    },
-  });
-
-  const refreshed = await loadGeneratedCertificateReviewRequest(
-    db,
-    txResult.requestId,
-  );
-
-  if (!refreshed) {
-    throw new Error("Unable to reload the request after confirmation.");
+export async function findDuplicateInvoiceRequest(
+  db: PrismaClient | Prisma.TransactionClient,
+  requestId: string,
+  officialReceiptNumber: string | null,
+): Promise<{ exists: boolean; requestReferenceNumber: string | null }> {
+  if (!officialReceiptNumber || !officialReceiptNumber.trim()) {
+    return { exists: false, requestReferenceNumber: null };
   }
 
-  const invoiceNumberDuplicate = await findDuplicateInvoiceRequest(
-    db,
-    txResult.requestId,
-    refreshed.officialReceiptNumber,
+  const duplicate = await db.gmcRequest.findFirst({
+    where: {
+      officialReceiptNumber: officialReceiptNumber.trim(),
+      id: { not: requestId },
+    },
+    select: { requestReferenceNumber: true },
+  });
+
+  return {
+    exists: Boolean(duplicate),
+    requestReferenceNumber: duplicate?.requestReferenceNumber ?? null,
+  };
+}
+
+function splitFullName(fullName: string): {
+  firstName: string;
+  middleInitial: string | null;
+  lastName: string;
+} {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) {
+    return { firstName: "", middleInitial: null, lastName: "" };
+  }
+
+  if (parts.length === 1) {
+    return { firstName: parts[0], middleInitial: null, lastName: "" };
+  }
+
+  const lastName = parts[parts.length - 1];
+  const rest = parts.slice(0, -1);
+  const trailingPart = rest[rest.length - 1];
+
+  if (rest.length > 1 && /^[A-Z]\.?$/i.test(trailingPart)) {
+    return {
+      firstName: rest.slice(0, -1).join(" "),
+      middleInitial: trailingPart.replace(".", "").toUpperCase(),
+      lastName,
+    };
+  }
+
+  return { firstName: rest.join(" "), middleInitial: null, lastName };
+}
+
+export async function confirmGmcRequestProcess(
+  db: PrismaClient,
+  input: GmcRequestProcessConfirmInput,
+): Promise<GmcRequestProcessDraft> {
+  await warmSignatureImageCache(DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY);
+
+  const validated = validateProcessInput(input);
+
+  if (!input.staffUserId) {
+    throw new Error("Signed-in staff member is required.");
+  }
+
+  const request = await loadGeneratedCertificateReviewRequest(db, input.requestId);
+
+  if (!request) {
+    throw new Error("GMC request not found.");
+  }
+
+  if (request.status !== "PENDING") {
+    throw new Error("This request can no longer be processed.");
+  }
+
+  if (request.certificate) {
+    throw new Error("This request has already been processed.");
+  }
+
+  const previewHtml = await buildCertificatePreviewHtmlFromEditableValues(
+    "",
+    validated.editableValues,
+    new Date(),
+    {
+      ...validated.previewContext,
+      studentTitlePrefix: request.studentTitlePrefix ?? null,
+    },
   );
 
-  return await buildGmcRequestProcessDraft(refreshed, invoiceNumberDuplicate);
+  const draft = await buildGmcRequestProcessDraft(request);
+
+  draft.request.studentFullName = validated.editableValues.studentFullName;
+  draft.request.studentId = validated.editableValues.studentIdNumber;
+  draft.request.studentCourseProgram = validated.editableValues.courseProgram;
+  draft.request.studentAcademicYear = validated.editableValues.academicYear;
+  draft.request.purposeOfCertificate =
+    validated.editableValues.purposeOfCertificate;
+  draft.request.term = validated.term;
+  draft.request.officialReceiptNumber = validated.officialReceiptNumber;
+  draft.request.hasViolationRecord = validated.hasViolationRecord;
+  draft.invoiceNumberDuplicate = await findDuplicateInvoiceRequest(
+    db,
+    input.requestId,
+    validated.officialReceiptNumber,
+  );
+  draft.certificatePreview = {
+    previewHtml,
+    certificateNumber: "",
+    dateOfIssuance: new Date().toISOString(),
+  };
+
+  return draft;
+}
+
+export interface GmcRequestProcessReleaseInput {
+  requestId: string;
+  staffUserId: string;
+  studentFullName: string;
+  studentIdNumber: string;
+  courseProgram: string;
+  academicYear: string;
+  term: string;
+  purposeOfCertificate: string;
+  officialReceiptNumber: string;
+  hasViolationRecord: boolean;
+  reviewNotes?: string | null;
+}
+
+export interface GmcRequestProcessReleaseResult {
+  requestId: string;
+  certificateNumber: string;
+}
+
+export async function releaseGmcRequestProcess(
+  db: PrismaClient,
+  input: GmcRequestProcessReleaseInput,
+): Promise<GmcRequestProcessReleaseResult> {
+  await warmSignatureImageCache(DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY);
+
+  const validated = validateProcessInput(input);
+
+  if (!input.staffUserId) {
+    throw new Error("Signed-in staff member is required.");
+  }
+
+  const dateOfIssuance = new Date();
+  let result: GmcRequestProcessReleaseResult;
+
+  try {
+    result = await db.$transaction(
+      async (tx) => {
+        const currentRequest = await loadGeneratedCertificateReviewRequest(
+          tx,
+          input.requestId,
+        );
+
+        if (!currentRequest) {
+          throw new Error("GMC request not found.");
+        }
+
+        if (currentRequest.status !== "PENDING") {
+          throw new Error("This request can no longer be processed.");
+        }
+
+        if (currentRequest.certificate) {
+          throw new Error("This request has already been processed.");
+        }
+
+        await updateGmcRequestStatusInTransaction(tx, {
+          gmcRequestId: currentRequest.id,
+          status: "APPROVED",
+          reviewedById: input.staffUserId,
+          reviewNotes: "Validated and approved through the guided review flow.",
+          actorId: input.staffUserId,
+          auditAction: "REQUEST_APPROVED",
+          auditNotes: "Payment recorded and request approved during guided release.",
+        });
+
+        const approvedRequest = await loadGeneratedCertificateReviewRequest(
+          tx,
+          currentRequest.id,
+        );
+
+        if (!approvedRequest) {
+          throw new Error("GMC request not found after approval.");
+        }
+
+        const certificate = await issueCertificateForLoadedRequest(
+          tx,
+          approvedRequest,
+          {
+            gmcRequestId: currentRequest.id,
+            authorizedSignatory: DEFAULT_CERTIFICATE_AUTHORIZED_SIGNATORY,
+            officeDesignation: DEFAULT_CERTIFICATE_OFFICE_DESIGNATION,
+            dateOfIssuance,
+            actorId: input.staffUserId,
+          },
+        );
+
+        await tx.certificate.update({
+          where: { id: certificate.id },
+          data: validated.editableValues,
+        });
+
+        await tx.gmcRequest.update({
+          where: { id: currentRequest.id },
+          data: {
+            studentFirstName: validated.nameParts.firstName,
+            studentMiddleInitial: validated.nameParts.middleInitial,
+            studentLastName: validated.nameParts.lastName,
+            studentCourseProgram: validated.editableValues.courseProgram,
+            studentAcademicYear: validated.editableValues.academicYear,
+            term: validated.term,
+            purposeOfRequest: validated.purposeOfRequest,
+            officialReceiptNumber: validated.officialReceiptNumber,
+            hasViolationRecord: validated.hasViolationRecord,
+          },
+        });
+
+        const previewHtml = await buildCertificatePreviewHtmlFromEditableValues(
+          certificate.certificateNumber,
+          validated.editableValues,
+          dateOfIssuance,
+          {
+            ...validated.previewContext,
+            studentTitlePrefix: currentRequest.studentTitlePrefix ?? null,
+          },
+        );
+        const pdfBuffer = await renderCertificateHtmlToPdfBuffer(previewHtml);
+        const storedPdf = await getStorageService().upload({
+          buffer: pdfBuffer,
+          filename: `${certificate.certificateNumber}.pdf`,
+          contentType: "application/pdf",
+          subdirectory: "generated-certificates",
+        });
+
+        await tx.certificate.update({
+          where: { id: certificate.id },
+          data: {
+            generatedPdfUrl: storedPdf.url,
+            previewHtml,
+          },
+        });
+
+        await updateGmcRequestStatusInTransaction(tx, {
+          gmcRequestId: currentRequest.id,
+          status: "RELEASED",
+          reviewedById: input.staffUserId,
+          reviewNotes: input.reviewNotes?.trim() || null,
+          dateReleased: new Date(),
+          actorId: input.staffUserId,
+          auditAction: "CERTIFICATE_APPROVED_AND_RELEASED_PDF_DOWNLOAD",
+          auditNotes: `Certificate ${certificate.certificateNumber} generated and released for in-person pickup at Discipline Office.`,
+        });
+
+        return {
+          requestId: currentRequest.id,
+          certificateNumber: certificate.certificateNumber,
+        };
+      },
+      { timeout: RELEASE_TRANSACTION_TIMEOUT_MS },
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to release the certificate.";
+
+    try {
+      await db.auditLogEntry.create({
+        data: {
+          gmcRequestId: input.requestId,
+          actorId: input.staffUserId,
+          action: "RELEASE_ATTEMPT_FAILED",
+          notes: `Release attempt failed and was rolled back: ${message}`,
+        },
+      });
+    } catch (auditError) {
+      console.error("Failed to record the failed release attempt:", auditError);
+    }
+
+    throw error;
+  }
+
+  return result;
 }
 
 export interface GmcRequestProcessRejectInput {
@@ -464,10 +615,14 @@ export async function rejectGmcRequestProcess(
       throw new Error("GMC request not found.");
     }
 
-    if (currentRequest.status !== "PENDING" && currentRequest.status !== "APPROVED") {
+    if (currentRequest.status !== "PENDING") {
       throw Object.assign(new Error("Only pending requests can be rejected."), {
         statusCode: 400,
       });
+    }
+
+    if (currentRequest.certificate) {
+      throw new Error("This request has already been processed.");
     }
 
     await updateGmcRequestStatusInTransaction(tx, {
@@ -503,4 +658,32 @@ export async function rejectGmcRequestProcess(
     txResult.refreshed,
     txResult.invoiceNumberDuplicate,
   );
+}
+
+export interface GmcRequestProcessDiscardInput {
+  requestId: string;
+  staffUserId: string;
+}
+
+export async function discardGmcRequestProcess(
+  db: PrismaClient,
+  input: GmcRequestProcessDiscardInput,
+): Promise<void> {
+  const request = await db.gmcRequest.findUnique({
+    where: { id: input.requestId },
+    select: { id: true, status: true },
+  });
+
+  if (!request || request.status !== "PENDING") {
+    return;
+  }
+
+  await db.auditLogEntry.create({
+    data: {
+      gmcRequestId: input.requestId,
+      actorId: input.staffUserId,
+      action: "WIZARD_DISCARDED",
+      notes: "Guided release flow was closed without releasing the certificate.",
+    },
+  });
 }
