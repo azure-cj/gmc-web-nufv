@@ -85,6 +85,43 @@ async function loadSignatureImageBase64(
   return null;
 }
 
+/* ── Letterhead background image ─────────────────────────────────── */
+
+const CERTIFICATE_LETTERHEAD_IMAGE_DIR = path.join(
+  process.cwd(),
+  "public",
+  "images",
+  "certificate",
+);
+
+const CERTIFICATE_LETTERHEAD_IMAGE_FILENAME = "nu-fairview-letterhead.jpg";
+
+let letterheadImageCache: string | null | undefined;
+
+async function loadLetterheadBackgroundBase64(): Promise<string | null> {
+  if (letterheadImageCache !== undefined) {
+    return letterheadImageCache;
+  }
+
+  const explicitPath = process.env.GMC_CERTIFICATE_LETTERHEAD_IMAGE_PATH;
+  const candidate =
+    explicitPath ??
+    path.join(
+      CERTIFICATE_LETTERHEAD_IMAGE_DIR,
+      CERTIFICATE_LETTERHEAD_IMAGE_FILENAME,
+    );
+
+  try {
+    const buffer = await fs.readFile(candidate);
+    const dataUri = `data:image/jpeg;base64,${buffer.toString("base64")}`;
+    letterheadImageCache = dataUri;
+    return dataUri;
+  } catch {
+    letterheadImageCache = null;
+    return null;
+  }
+}
+
 export interface GoodMoralCertificateTemplateInput {
   certificateNumber: string;
   studentFullName: string;
@@ -141,6 +178,7 @@ export async function buildGoodMoralCertificateHtml(
   const purposeRemarks = formatPurposeRemarks(input.purposeOfRequest);
   const receiptNumber = input.officialReceiptNumber?.trim() || "N/A";
   const signatureDataUri = await loadSignatureImageBase64(input.authorizedSignatory);
+  const letterheadDataUri = await loadLetterheadBackgroundBase64();
 
   const verificationToken = input.verificationToken?.trim();
   const verificationUrl = verificationToken
@@ -173,18 +211,24 @@ export async function buildGoodMoralCertificateHtml(
       body {
         height: 11in;
         margin: 0;
-        padding: 1.9in 0.72in 0.65in;
-        background: #ffffff;
+        padding: 1.5in 0.72in 0.9in;
         color: #111111;
         font-family: "Times New Roman", Times, serif;
         overflow: hidden;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+        background-color: #ffffff;
+        ${letterheadDataUri
+          ? `background-image: url("${letterheadDataUri}");
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+        background-position: center center;`
+          : ""}
       }
 
       .sheet {
-        height: 8.45in;
-        max-height: 8.45in;
+        height: 8.6in;
+        max-height: 8.6in;
         overflow: hidden;
       }
 
@@ -209,7 +253,7 @@ export async function buildGoodMoralCertificateHtml(
 
       .title-block {
         text-align: center;
-        margin: 38px 0 42px;
+        margin: 26px 0 30px;
       }
 
       .title {
@@ -234,7 +278,7 @@ export async function buildGoodMoralCertificateHtml(
       }
 
       .spacer-before-certified-by {
-        height: 28px;
+        height: 22px;
       }
 
       .certified-by {
@@ -246,7 +290,7 @@ export async function buildGoodMoralCertificateHtml(
       .signature-block {
         width: 420px;
         text-align: left;
-        margin-bottom: 24px;
+        margin-bottom: 18px;
         break-inside: avoid;
         page-break-inside: avoid;
       }
@@ -282,21 +326,30 @@ export async function buildGoodMoralCertificateHtml(
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
-        gap: 18px;
-        margin-top: 18px;
+        gap: 24px;
+        margin-top: 16px;
         break-inside: avoid;
         page-break-inside: avoid;
       }
 
       .qr-block {
         flex: 0 0 auto;
-        width: 50px;
+        width: 190px;
+        text-align: center;
       }
 
       .qr-image {
         display: block;
-        width: 50px;
-        height: 50px;
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 4px;
+      }
+
+      .qr-caption {
+        font-size: 9.5pt;
+        font-weight: 700;
+        line-height: 1.25;
+        margin: 0;
       }
 
       .footer-line {
@@ -333,7 +386,7 @@ export async function buildGoodMoralCertificateHtml(
       @media print {
         body {
           height: 11in;
-          padding: 1.9in 0.72in 0.65in;
+          padding: 1.5in 0.72in 0.9in;
         }
       }
     </style>
@@ -375,9 +428,12 @@ export async function buildGoodMoralCertificateHtml(
           <p class="footer-note">Not Valid Without School's Dry Seal*</p>
         </div>
         ${verificationToken && verificationQrDataUri
-          ? `<a class="qr-block" href="${escapeHtml(verificationUrl!)}" aria-label="Scan to verify this certificate">
-          <img class="qr-image" src="${verificationQrDataUri}" alt="Scan this QR code to verify the certificate" />
-        </a>`
+          ? `<div class="qr-block">
+            <a class="qr-link" href="${escapeHtml(verificationUrl!)}" aria-label="Open the verification page for this certificate">
+              <img class="qr-image" src="${verificationQrDataUri}" alt="Scan this QR code to verify the certificate" />
+            </a>
+            <p class="qr-caption">Scan this QR code to verify this certificate's authenticity.</p>
+          </div>`
           : ""}
       </div>
 

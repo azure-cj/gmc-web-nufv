@@ -56,7 +56,7 @@ async function main(): Promise<void> {
     },
   });
 
-  const releaseResult = await releaseGmcRequestProcess(prisma, {
+  await releaseGmcRequestProcess(prisma, {
     requestId: gmcRequest.id,
     staffUserId: staffUser.id,
     studentFullName: `${student.firstName} ${student.middleInitial}. ${student.lastName}`,

@@ -12,9 +12,11 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/api/staff/gmc-requests/[requestId]/process": [
       "./.vercel-chromium-bin/**",
+      "./public/images/**",
     ],
     "/api/private-files": [
       "./.vercel-chromium-bin/**",
+      "./public/images/**",
     ],
   },
   serverExternalPackages: [
