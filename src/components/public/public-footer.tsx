@@ -47,20 +47,6 @@ export default function PublicFooter() {
 
               <div>
                 <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                  Bug Reports
-                </dt>
-                <dd className="mt-0.5">
-                  <a
-                    href="mailto:aureocv@students.nu-fairview.edu.ph"
-                    className="transition hover:text-[#E0C07A] underline decoration-slate-600 underline-offset-2"
-                  >
-                    aureocv@students.nu-fairview.edu.ph
-                  </a>
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   Location
                 </dt>
                 <dd className="mt-0.5">
