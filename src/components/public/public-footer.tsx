@@ -70,7 +70,7 @@ export default function PublicFooter() {
         {/* Bottom Closing Line */}
         <div className="mt-8 border-t border-white/10 pt-6 text-center">
           <p className="text-xs font-medium tracking-wide text-slate-400">
-            Crafted for NU Fairview by Aureo CV.
+            Crafted for NU Fairview by C.J.V. Aureo.
           </p>
         </div>
       </div>

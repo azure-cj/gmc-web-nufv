@@ -17,10 +17,10 @@ const BROWSER_CANDIDATES = [
 ];
 
 const LETTERHEAD_METRICS = {
-  // letternew.jpg is 1703x2420, rendered stretched to the 816x1056 letter page
-  headerBottomPx: Math.ceil((450 / 2420) * 1056), // all top graphics end ~2.05in
-  accentLineTopPx: Math.ceil((2174 / 2420) * 1056), // gold accent line starts ~9.88in
-  footerBarTopPx: Math.ceil((2236 / 2420) * 1056), // address/contact bar starts ~10.16in
+  // letterhead.jpg is 1760x2420, rendered stretched to the 816x1056 letter page
+  headerBottomPx: Math.ceil((416 / 2420) * 1056), // header banner + accreditation badges end ~1.89in
+  accentLineTopPx: Math.ceil((2176 / 2420) * 1056), // gold accent line starts ~9.89in
+  footerBarTopPx: Math.ceil((2237 / 2420) * 1056), // address/contact bar starts ~10.17in
 };
 
 const TOKEN = "test-verification-token-0001";
@@ -142,6 +142,13 @@ for (const testCase of cases) {
     "For verification, please directly contact the Discipline Office*",
   );
 
+  const transparentSignatureUsed = new RegExp(
+    /<img class="signatory-image" src="data:image\/png;base64,/,
+  ).test(html);
+  const opaqueSignatureUsed = new RegExp(
+    /<img class="signatory-image" src="data:image\/jpeg;base64,/,
+  ).test(html);
+
   if (!drySealGone) {
     issues.push("'Not Valid Without School's Dry Seal*' footer line still present");
   }
@@ -150,6 +157,12 @@ for (const testCase of cases) {
   }
   if (!verificationLineKept) {
     issues.push("'For verification...' footer line missing");
+  }
+  if (!transparentSignatureUsed) {
+    issues.push("signature is not embedded from a transparent PNG (data:image/png)");
+  }
+  if (opaqueSignatureUsed) {
+    issues.push("signature still embedded from opaque JPEG (data:image/jpeg)");
   }
 
   if (pageCount !== 1) {
