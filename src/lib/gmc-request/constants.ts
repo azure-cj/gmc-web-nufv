@@ -58,8 +58,8 @@ export const GMC_REQUEST_PAYMENT_PROOF_ALLOWED_EXTENSIONS = [
   ".jpeg",
 ] as const;
 
-export const INVOICE_NUMBER_PATTERN = /^INV01-\d{9,12}$/i;
+export const INVOICE_NUMBER_PATTERN = /^INVO1-\d{9}$/i;
 export const INVOICE_NUMBER_FORMAT_HINT =
-  "Invoice number must start with INV01- followed by 9 to 12 digits (e.g. INV01-12345678901).";
+  "Invoice number must start with INVO1- followed by 9 digits (e.g. INVO1-000088327).";
 
 export const PAYMENT_PROOF_MANDATORY_CUTOFF = "2026-09-04T00:00:00+08:00";

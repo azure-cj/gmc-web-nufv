@@ -715,7 +715,7 @@ export default function RequestFormClient({
                       void checkInvoiceDuplicate(event.target.value);
                     }
                   }}
-                  placeholder="e.g. INV01-12345678901"
+                  placeholder="e.g. INVO1-000088327"
                   className={fieldClassName(
                     Boolean(errors.paymentReceiptNumber) || Boolean(duplicateInvoiceError),
                   )}

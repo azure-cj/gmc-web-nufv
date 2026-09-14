@@ -737,7 +737,7 @@ export default function StaffRequestProcessModal({
                     officialReceiptNumber: event.target.value,
                   }))
                 }
-                placeholder="e.g. INV01-12345678901"
+                placeholder="e.g. INVO1-000088327"
                 className={fieldInputClassName(
                   Boolean(fieldErrors.officialReceiptNumber),
                 )}
